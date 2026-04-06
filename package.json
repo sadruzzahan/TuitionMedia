@@ -1,0 +1,31 @@
+{
+  "name": "tuition-media",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "clean": "turbo run clean && rm -rf node_modules",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "db:generate": "pnpm --filter backend exec prisma generate",
+    "db:migrate": "pnpm --filter backend exec prisma migrate dev",
+    "db:studio": "pnpm --filter backend exec prisma studio"
+  },
+  "devDependencies": {
+    "pnpm": "^10.33.0",
+    "prettier": "^3.4.2",
+    "turbo": "^2.3.3"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.1.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@pnpm/exe"
+    ]
+  }
+}
