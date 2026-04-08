@@ -254,26 +254,28 @@ model TutorPost {
 }
 
 model TutorProfile {
-  id             String   @id
-  user_id        String   @unique
-  bio            String?
-  education      String?
-  experience     Int      @default(0)
-  hourly_rate    Decimal  @db.Decimal(10, 2)
-  subjects       String[]
-  qualifications String[]
-  availability   Json?
-  is_verified    Boolean  @default(false)
-  average_rating Decimal? @db.Decimal(3, 2)
-  total_reviews  Int      @default(0)
-  total_students Int      @default(0)
-  total_hours    Int      @default(0)
-  is_online      Boolean  @default(false)
-  created_at     DateTime @default(now())
-  updated_at     DateTime @updatedAt
-  areas          String[]
-  division       String?
-  user           User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  id                String   @id
+  user_id           String   @unique
+  bio               String?
+  education         String?
+  experience        Int      @default(0)
+  hourly_rate       Decimal  @db.Decimal(10, 2)
+  subjects          String[]
+  qualifications    String[]
+  availability      Json?
+  is_verified       Boolean  @default(false)
+  is_profile_public Boolean  @default(true)
+  is_premium        Boolean  @default(false)
+  average_rating    Decimal? @db.Decimal(3, 2)
+  total_reviews     Int      @default(0)
+  total_students    Int      @default(0)
+  total_hours       Int      @default(0)
+  is_online         Boolean  @default(false)
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+  areas             String[]
+  division          String?
+  user              User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@map("tutor_profiles")
 }

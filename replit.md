@@ -40,6 +40,8 @@ bash start.sh
 | `/` | Landing page — Bangladesh-localised marketing site |
 | `/login` | Sign in |
 | `/signup` | Register as student or tutor |
+| `/tutors` | Browse public tutor profiles with filters (subject, division, rate, sort) |
+| `/tutors/[id]` | Individual tutor public profile with SEO meta, JSON-LD, reviews |
 
 ### Dashboard (auth required)
 | Route | Role | Description |
@@ -65,11 +67,21 @@ bash start.sh
 
 ## Task Progress
 - [x] Task #1: UI/UX Overhaul & Marketing Site — **COMPLETE**
-- [ ] Task #2: Tutor Discovery & Public Profiles
+- [x] Task #2: Tutor Discovery & Public Profiles — **COMPLETE**
+  - `GET /tutors` — filterable, sortable, paginated browse endpoint with featured section
+  - `GET /tutors/:id` — public profile with reviews; hides contact until connected
+  - `is_profile_public` toggle on tutor dashboard profile page
+  - `/tutors` and `/tutors/[id]` frontend pages with SEO meta + JSON-LD
 - [ ] Task #3: Real-time Messaging & Notifications
 - [ ] Task #4: Session Scheduling & Management
 - [ ] Task #5: Reviews, Ratings & Verification
 - [ ] Task #6: Admin Dashboard & Platform Analytics
+
+## SSR Notes (Next.js 15 + React 19)
+- `(dashboard)/layout.tsx` is a server component with `export const dynamic = 'force-dynamic'` to prevent zustand/motion prerender crashes
+- `(public)/layout.tsx` has `export const dynamic = 'force-dynamic'` for the same reason
+- Dashboard client layout lives in `layout-client.tsx`
+- Individual dashboard pages use `profile-content.tsx` / `dashboard-content.tsx` wrapper pattern
 
 ## Plan Files
 See `plans/` directory for detailed task plans.

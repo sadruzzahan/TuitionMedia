@@ -56,7 +56,7 @@ const STATUS_COLORS: Record<string, string> = {
 function TutorInitials({ name, email }: { name: string | null; email: string }) {
   const str = name ?? email;
   const parts = str.split(/[\s@.]+/).filter(Boolean);
-  return parts.slice(0, 2).map((p) => p[0].toUpperCase()).join("");
+  return parts.slice(0, 2).map((p) => (p[0] ?? "").toUpperCase()).join("");
 }
 
 export default function RequestDetailPage() {

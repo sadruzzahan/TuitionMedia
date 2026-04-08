@@ -7,6 +7,7 @@ import { AuthModule } from "./auth/auth.module";
 import { TuitionRequestModule } from "./tuition-request/tuition-request.module";
 import { ApplicationModule } from "./application/application.module";
 import { PaymentModule } from "./payment/payment.module";
+import { TutorDiscoveryModule } from "./tutor-discovery/tutor-discovery.module";
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { PaymentModule } from "./payment/payment.module";
     TuitionRequestModule,
     ApplicationModule,
     PaymentModule,
+    TutorDiscoveryModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -131,14 +131,17 @@ const FAQS = [
   },
 ];
 
-const colorMap: Record<string, { bg: string; text: string; border: string }> = {
-  cyan: { bg: "bg-cyan-500/20", text: "text-cyan-400", border: "border-cyan-500/30" },
+type ColorEntry = { bg: string; text: string; border: string };
+const DEFAULT_COLOR: ColorEntry = { bg: "bg-cyan-500/20", text: "text-cyan-400", border: "border-cyan-500/30" };
+const colorMap: Record<string, ColorEntry> = {
+  cyan: DEFAULT_COLOR,
   teal: { bg: "bg-teal-500/20", text: "text-teal-400", border: "border-teal-500/30" },
   emerald: { bg: "bg-emerald-500/20", text: "text-emerald-400", border: "border-emerald-500/30" },
   blue: { bg: "bg-blue-500/20", text: "text-blue-400", border: "border-blue-500/30" },
   violet: { bg: "bg-violet-500/20", text: "text-violet-400", border: "border-violet-500/30" },
   yellow: { bg: "bg-yellow-500/20", text: "text-yellow-400", border: "border-yellow-500/30" },
 };
+function getColor(key: string): ColorEntry { return colorMap[key] ?? DEFAULT_COLOR; }
 
 export default function HowItWorksPage() {
   return (
@@ -186,7 +189,7 @@ export default function HowItWorksPage() {
 
               <div className="space-y-6">
                 {STUDENT_STEPS.map((step, i) => {
-                  const c = colorMap[step.color];
+                  const c = getColor(step.color);
                   return (
                     <motion.div
                       key={step.title}
@@ -239,7 +242,7 @@ export default function HowItWorksPage() {
 
               <div className="space-y-6">
                 {TUTOR_STEPS.map((step, i) => {
-                  const c = colorMap[step.color];
+                  const c = getColor(step.color);
                   return (
                     <motion.div
                       key={step.title}
