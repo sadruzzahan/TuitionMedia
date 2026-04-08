@@ -38,6 +38,8 @@ export default function AdminUsersPage() {
   const [role, setRole] = useState(searchParams.get("role") ?? "ALL");
   const [page, setPage] = useState(1);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState("created_at");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [selectedUser, setSelectedUser] = useState<UserRow | null>(null);
   const [userDetail, setUserDetail] = useState<Record<string, unknown> | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -45,7 +47,7 @@ export default function AdminUsersPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({ page: String(page), limit: "20" });
+      const params = new URLSearchParams({ page: String(page), limit: "20", sortBy, sortOrder });
       if (search) params.set("search", search);
       if (role && role !== "ALL") params.set("role", role);
       const res = await apiGet<UsersResponse>(`/admin/users?${params}`);
@@ -55,7 +57,7 @@ export default function AdminUsersPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, search, role]);
+  }, [page, search, role, sortBy, sortOrder]);
 
   useEffect(() => {
     load();
@@ -162,10 +164,33 @@ export default function AdminUsersPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-white/10 text-muted-foreground text-xs">
-                    <th className="text-left pb-3 font-medium">User</th>
-                    <th className="text-left pb-3 font-medium">Role</th>
+                    {(["name", "role"] as const).map((col) => (
+                      <th key={col} className="text-left pb-3 font-medium">
+                        <button
+                          onClick={() => {
+                            if (sortBy === col) setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+                            else { setSortBy(col); setSortOrder("desc"); }
+                          }}
+                          className="flex items-center gap-1 hover:text-white transition-colors"
+                        >
+                          {col === "name" ? "User" : "Role"}
+                          <span className="text-[10px]">{sortBy === col ? (sortOrder === "asc" ? "↑" : "↓") : "↕"}</span>
+                        </button>
+                      </th>
+                    ))}
                     <th className="text-left pb-3 font-medium">Status</th>
-                    <th className="text-left pb-3 font-medium">Joined</th>
+                    <th className="text-left pb-3 font-medium">
+                      <button
+                        onClick={() => {
+                          if (sortBy === "created_at") setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+                          else { setSortBy("created_at"); setSortOrder("desc"); }
+                        }}
+                        className="flex items-center gap-1 hover:text-white transition-colors"
+                      >
+                        Joined
+                        <span className="text-[10px]">{sortBy === "created_at" ? (sortOrder === "asc" ? "↑" : "↓") : "↕"}</span>
+                      </button>
+                    </th>
                     <th className="text-left pb-3 font-medium">Actions</th>
                   </tr>
                 </thead>

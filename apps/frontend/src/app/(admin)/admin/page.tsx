@@ -11,6 +11,7 @@ import {
   BarChart3,
   ArrowUpRight,
   ArrowDownRight,
+  FileText,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiGet } from "@/lib/api";
@@ -268,6 +269,7 @@ export default function AdminDashboard() {
           {[
             { href: "/admin/users", label: "Manage Users", desc: "View and manage all accounts", icon: Users, color: "text-cyan-400" },
             { href: "/admin/payments", label: "Payment Logs", desc: "Review transactions", icon: CreditCard, color: "text-amber-400" },
+            { href: "/admin/requests", label: "Tuition Requests", desc: "View and close requests", icon: FileText, color: "text-blue-400" },
             { href: "/admin/documents", label: "Verify Documents", desc: "Approve/reject tutor docs", icon: BookOpen, color: "text-emerald-400" },
             { href: "/admin/reviews", label: "Moderate Reviews", desc: "Hide or remove content", icon: BarChart3, color: "text-purple-400" },
           ].map((item) => (

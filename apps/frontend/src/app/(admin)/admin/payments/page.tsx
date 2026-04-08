@@ -130,6 +130,7 @@ export default function AdminPaymentsPage() {
                   <tr className="border-b border-white/10 text-muted-foreground text-xs">
                     <th className="text-left pb-3 font-medium">User</th>
                     <th className="text-left pb-3 font-medium">Request</th>
+                    <th className="text-left pb-3 font-medium">App. Ref</th>
                     <th className="text-left pb-3 font-medium">Method</th>
                     <th className="text-left pb-3 font-medium">Amount</th>
                     <th className="text-left pb-3 font-medium">Status</th>
@@ -145,6 +146,11 @@ export default function AdminPaymentsPage() {
                       </td>
                       <td className="py-3 pr-4 max-w-[160px]">
                         <p className="truncate text-xs text-muted-foreground">{p.requestTitle}</p>
+                      </td>
+                      <td className="py-3 pr-4">
+                        <p className="text-xs font-mono text-muted-foreground truncate max-w-[80px]" title={p.applicationId}>
+                          {p.applicationId ? p.applicationId.slice(0, 8) + "…" : "—"}
+                        </p>
                       </td>
                       <td className="py-3 pr-4">
                         <span className={cn(

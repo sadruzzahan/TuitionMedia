@@ -152,8 +152,10 @@ export class AdminService {
     search?: string;
     role?: string;
     status?: string;
+    sortBy?: string;
+    sortOrder?: string;
   }) {
-    const { page, limit, search, role, status } = params;
+    const { page, limit, search, role, status, sortBy, sortOrder } = params;
     const skip = (page - 1) * limit;
 
     const where: Record<string, unknown> = {};
@@ -181,7 +183,9 @@ export class AdminService {
           created_at: true,
           tutor_profile: { select: { is_verified: true, is_premium: true, average_rating: true } },
         },
-        orderBy: { created_at: "desc" },
+        orderBy: sortBy === "name" ? { name: (sortOrder === "asc" ? "asc" : "desc") as "asc" | "desc" }
+                : sortBy === "role" ? { role: (sortOrder === "asc" ? "asc" : "desc") as "asc" | "desc" }
+                : { created_at: (sortOrder === "asc" ? "asc" : "desc") as "asc" | "desc" },
         skip,
         take: limit,
       }),

@@ -34,8 +34,10 @@ export class AdminController {
     @Query("search") search?: string,
     @Query("role") role?: string,
     @Query("status") status?: string,
+    @Query("sortBy") sortBy?: string,
+    @Query("sortOrder") sortOrder?: string,
   ) {
-    return this.adminService.getUsers({ page, limit: Math.min(limit, 100), search, role, status });
+    return this.adminService.getUsers({ page, limit: Math.min(limit, 100), search, role, status, sortBy, sortOrder });
   }
 
   @Get("users/:id")
