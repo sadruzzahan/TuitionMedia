@@ -44,6 +44,8 @@ type TutorProfile = {
   division: string | null;
   areas: string[];
   experience: number;
+  gender: string | null;
+  teaching_mode: string | null;
   is_verified: boolean;
   is_profile_public: boolean;
   average_rating: string | null;
@@ -96,6 +98,8 @@ function ProfileProgress({
       { label: "Hourly rate set", done: !!tutorProfile?.hourly_rate },
       { label: "Education filled", done: !!tutorProfile?.education },
       { label: "Division / Area", done: !!(tutorProfile?.division || (tutorProfile?.areas?.length ?? 0) > 0) },
+      { label: "Gender set", done: !!tutorProfile?.gender },
+      { label: "Teaching mode", done: !!tutorProfile?.teaching_mode },
     );
   } else {
     items.push(
