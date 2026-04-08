@@ -31,7 +31,15 @@ export class SessionController {
   }
 
   @Get("availability/:tutorId")
-  async getTutorAvailability(@Param("tutorId") tutorId: string) {
+  async getTutorAvailability(
+    @Param("tutorId") tutorId: string,
+    @Query("days") days: string | undefined,
+  ) {
+    return this.sessionService.getAvailableSlots(tutorId, days ? Number(days) : 30);
+  }
+
+  @Get("availability/:tutorId/rules")
+  async getTutorAvailabilityRules(@Param("tutorId") tutorId: string) {
     return this.sessionService.getAvailability(tutorId);
   }
 

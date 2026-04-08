@@ -5,6 +5,7 @@ import { motion } from "motion/react";
 import { Calendar, History } from "lucide-react";
 import { AvailabilityPicker } from "@/components/session/availability-picker";
 import { SessionHistory } from "@/components/session/session-history";
+import { WeekAvailabilitySummary } from "@/components/session/week-availability-summary";
 import { useAuthStore } from "@/store/auth-store";
 
 export default function TutorSchedulePage() {
@@ -46,7 +47,20 @@ export default function TutorSchedulePage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.2 }}
       >
-        {tab === "availability" && <AvailabilityPicker />}
+        {tab === "availability" && (
+          <div className="space-y-6">
+            <AvailabilityPicker />
+            {user && (
+              <div className="space-y-3">
+                <h2 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-cyan-400" />
+                  Your Next 7 Days
+                </h2>
+                <WeekAvailabilitySummary tutorId={user.id} />
+              </div>
+            )}
+          </div>
+        )}
         {tab === "history" && user && <SessionHistory currentUserId={user.id} />}
       </motion.div>
     </div>

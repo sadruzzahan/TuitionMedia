@@ -297,6 +297,9 @@ export class SessionService {
 
     if (session.status === "CANCELLED") throw new BadRequestException("Cannot complete a cancelled session");
     if (session.status === "COMPLETED") throw new BadRequestException("Session already completed");
+    if (new Date(session.scheduledAt) > new Date()) {
+      throw new BadRequestException("Session cannot be completed before the scheduled time");
+    }
 
     const updated = await this.prisma.session.update({
       where: { id: sessionId },
