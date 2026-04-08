@@ -41,6 +41,8 @@ export default function AdminUsersPage() {
   const [page, setPage] = useState(1);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [selectedUser, setSelectedUser] = useState<UserRow | null>(null);
+  const [userDetail, setUserDetail] = useState<Record<string, unknown> | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -60,6 +62,20 @@ export default function AdminUsersPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  async function openUserDetail(user: UserRow) {
+    setSelectedUser(user);
+    setUserDetail(null);
+    setDetailLoading(true);
+    try {
+      const detail = await apiGet<Record<string, unknown>>(`/admin/users/${user.id}`);
+      setUserDetail(detail);
+    } catch {
+      setUserDetail(null);
+    } finally {
+      setDetailLoading(false);
+    }
+  }
 
   async function handleToggleActive(user: UserRow) {
     setActionLoading(user.id + "-active");
@@ -198,7 +214,7 @@ export default function AdminUsersPage() {
                             variant="ghost"
                             size="sm"
                             className="h-7 px-2 text-xs gap-1"
-                            onClick={() => setSelectedUser(user)}
+                            onClick={() => openUserDetail(user)}
                           >
                             <Eye className="h-3.5 w-3.5" />
                             View
@@ -301,21 +317,52 @@ export default function AdminUsersPage() {
                   <p className="text-sm text-muted-foreground">{selectedUser.email}</p>
                 </div>
               </div>
-              <div className="space-y-2 text-sm">
-                {[
-                  { label: "Role", value: selectedUser.role },
-                  { label: "Status", value: selectedUser.isActive ? "Active" : "Inactive" },
-                  { label: "Verified", value: selectedUser.isVerified ? "Yes" : "No" },
-                  { label: "Premium", value: selectedUser.isPremium ? "Yes" : "No" },
-                  { label: "Rating", value: selectedUser.averageRating ? selectedUser.averageRating.toFixed(1) + " / 5" : "No reviews" },
-                  { label: "Joined", value: new Date(selectedUser.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }) },
-                ].map(({ label, value }) => (
-                  <div key={label} className="flex justify-between">
-                    <span className="text-muted-foreground">{label}</span>
-                    <span className="font-medium">{value}</span>
-                  </div>
-                ))}
-              </div>
+              {detailLoading ? (
+                <div className="space-y-2">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <div key={i} className="h-5 rounded bg-white/5 animate-pulse" />
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-2 text-sm">
+                  {[
+                    { label: "Role", value: selectedUser.role },
+                    { label: "Status", value: selectedUser.isActive ? "Active" : "Inactive" },
+                    { label: "Verified", value: selectedUser.isVerified ? "Yes" : "No" },
+                    { label: "Premium", value: selectedUser.isPremium ? "Yes" : "No" },
+                    { label: "Rating", value: selectedUser.averageRating ? selectedUser.averageRating.toFixed(1) + " / 5" : "No reviews" },
+                    { label: "Joined", value: new Date(selectedUser.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }) },
+                    ...((userDetail?.phone as string) ? [{ label: "Phone", value: userDetail!.phone as string }] : []),
+                  ].map(({ label, value }) => (
+                    <div key={label} className="flex justify-between">
+                      <span className="text-muted-foreground">{label}</span>
+                      <span className="font-medium">{value}</span>
+                    </div>
+                  ))}
+                  {userDetail?.tutor_profile && (
+                    <div className="pt-2 border-t border-white/10">
+                      <p className="text-xs font-medium text-purple-400 mb-2">Tutor Profile</p>
+                      {[
+                        { label: "Subjects", value: ((userDetail.tutor_profile as Record<string, unknown>)?.subjects as string[])?.join(", ") || "—" },
+                        { label: "Rate/hr", value: (userDetail.tutor_profile as Record<string, unknown>)?.hourly_rate ? `৳${(userDetail.tutor_profile as Record<string, unknown>).hourly_rate}` : "—" },
+                        { label: "Experience", value: (userDetail.tutor_profile as Record<string, unknown>)?.experience_years ? `${(userDetail.tutor_profile as Record<string, unknown>).experience_years} yrs` : "—" },
+                      ].map(({ label, value }) => (
+                        <div key={label} className="flex justify-between text-xs py-0.5">
+                          <span className="text-muted-foreground">{label}</span>
+                          <span>{value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {userDetail?.applications && (
+                    <div className="pt-2 border-t border-white/10">
+                      <p className="text-xs text-muted-foreground">
+                        {(userDetail.applications as unknown[]).length} recent application(s)
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
               <div className="flex gap-2 pt-2">
                 <Button
                   variant="outline"

@@ -160,6 +160,7 @@ model Review {
   rating_punctuality   Int?
   rating_patience      Int?
   rating_value         Int?
+  is_hidden          Boolean        @default(false)
   createdAt          DateTime       @default(now()) @map("created_at")
   updated_at         DateTime       @updatedAt
   student            User           @relation("reviews_student_idTousers", fields: [studentId], references: [id], onDelete: Cascade)

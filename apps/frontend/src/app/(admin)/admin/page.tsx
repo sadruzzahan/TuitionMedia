@@ -25,6 +25,13 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
+type ActivityItem = {
+  type: "registration" | "connection" | "payment";
+  label: string;
+  detail: string;
+  time: string;
+};
+
 type Stats = {
   totalUsers: number;
   studentCount: number;
@@ -37,6 +44,7 @@ type Stats = {
   newUsersThisMonth: number;
   fulfillmentsThisMonth: number;
   monthlyRevenueByMonth: { month: string; revenue: number }[];
+  recentActivity: ActivityItem[];
 };
 
 function KpiCard({
@@ -220,23 +228,60 @@ export default function AdminDashboard() {
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { href: "/admin/users", label: "Manage Users", desc: "View and manage all accounts", icon: Users, color: "text-cyan-400" },
-          { href: "/admin/payments", label: "Payment Logs", desc: "Review transactions", icon: CreditCard, color: "text-amber-400" },
-          { href: "/admin/documents", label: "Verify Documents", desc: "Approve/reject tutor docs", icon: BookOpen, color: "text-emerald-400" },
-          { href: "/admin/reviews", label: "Moderate Reviews", desc: "Remove inappropriate content", icon: BarChart3, color: "text-purple-400" },
-        ].map((item) => (
-          <Link key={item.href} href={item.href}>
-            <Card className="glass-card border-white/5 hover:border-white/15 transition-all cursor-pointer h-full">
-              <CardContent className="pt-5">
-                <item.icon className={`h-8 w-8 ${item.color} mb-3`} />
-                <p className="font-medium text-sm">{item.label}</p>
-                <p className="text-xs text-muted-foreground mt-1">{item.desc}</p>
-              </CardContent>
-            </Card>
-          </Link>
-        ))}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card className="glass-card">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <TrendingUp className="h-5 w-5 text-emerald-400" />
+              Recent Activity
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {!stats.recentActivity || stats.recentActivity.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">No recent activity</p>
+            ) : (
+              <div className="space-y-3">
+                {stats.recentActivity.map((item, i) => (
+                  <div key={i} className="flex items-start gap-3">
+                    <div className={`mt-0.5 h-7 w-7 rounded-full flex items-center justify-center shrink-0 text-xs font-bold ${
+                      item.type === "registration" ? "bg-cyan-500/20 text-cyan-400" :
+                      item.type === "payment" ? "bg-amber-500/20 text-amber-400" :
+                      "bg-emerald-500/20 text-emerald-400"
+                    }`}>
+                      {item.type === "registration" ? "U" : item.type === "payment" ? "৳" : "✓"}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium">{item.label}</p>
+                      <p className="text-xs text-muted-foreground truncate">{item.detail}</p>
+                    </div>
+                    <span className="text-xs text-muted-foreground shrink-0">
+                      {new Date(item.time).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <div className="grid grid-cols-2 gap-4 content-start">
+          {[
+            { href: "/admin/users", label: "Manage Users", desc: "View and manage all accounts", icon: Users, color: "text-cyan-400" },
+            { href: "/admin/payments", label: "Payment Logs", desc: "Review transactions", icon: CreditCard, color: "text-amber-400" },
+            { href: "/admin/documents", label: "Verify Documents", desc: "Approve/reject tutor docs", icon: BookOpen, color: "text-emerald-400" },
+            { href: "/admin/reviews", label: "Moderate Reviews", desc: "Hide or remove content", icon: BarChart3, color: "text-purple-400" },
+          ].map((item) => (
+            <Link key={item.href} href={item.href}>
+              <Card className="glass-card border-white/5 hover:border-white/15 transition-all cursor-pointer h-full">
+                <CardContent className="pt-5">
+                  <item.icon className={`h-7 w-7 ${item.color} mb-3`} />
+                  <p className="font-medium text-sm">{item.label}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{item.desc}</p>
+                </CardContent>
+              </Card>
+            </Link>
+          ))}
+        </div>
       </div>
     </div>
   );

@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { BookOpen, Trash2, Loader2 } from "lucide-react";
+import { BookOpen, Trash2, Loader2, XCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { apiGet, apiDelete } from "@/lib/api";
+import { apiGet, apiDelete, apiPut } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
@@ -43,6 +43,7 @@ export default function AdminRequestsPage() {
   const [status, setStatus] = useState("ALL");
   const [page, setPage] = useState(1);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [closingId, setClosingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -59,6 +60,20 @@ export default function AdminRequestsPage() {
   }, [page, status]);
 
   useEffect(() => { load(); }, [load]);
+
+  async function handleClose(id: string, title: string) {
+    if (!confirm(`Close request "${title}"? It will no longer be visible to tutors.`)) return;
+    setClosingId(id);
+    try {
+      await apiPut(`/admin/requests/${id}/close`, {});
+      toast({ title: "Request closed", variant: "success" });
+      load();
+    } catch {
+      toast({ title: "Failed to close request", variant: "destructive" });
+    } finally {
+      setClosingId(null);
+    }
+  }
 
   async function handleDelete(id: string, title: string) {
     if (!confirm(`Delete request "${title}"? This cannot be undone.`)) return;
@@ -141,16 +156,30 @@ export default function AdminRequestsPage() {
                     <span className="text-xs text-muted-foreground">
                       {new Date(r.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
                     </span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 px-2 text-xs text-red-400 hover:text-red-400 hover:bg-red-500/10 gap-1"
-                      onClick={() => handleDelete(r.id, r.title)}
-                      disabled={deletingId === r.id}
-                    >
-                      {deletingId === r.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-                      Remove
-                    </Button>
+                    <div className="flex gap-1">
+                      {r.status === "OPEN" || r.status === "IN_PROGRESS" ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2 text-xs text-amber-400 hover:text-amber-400 hover:bg-amber-500/10 gap-1"
+                          onClick={() => handleClose(r.id, r.title)}
+                          disabled={closingId === r.id}
+                        >
+                          {closingId === r.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <XCircle className="h-3.5 w-3.5" />}
+                          Close
+                        </Button>
+                      ) : null}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-xs text-red-400 hover:text-red-400 hover:bg-red-500/10 gap-1"
+                        onClick={() => handleDelete(r.id, r.title)}
+                        disabled={deletingId === r.id}
+                      >
+                        {deletingId === r.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                        Remove
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ))}

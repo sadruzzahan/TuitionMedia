@@ -121,4 +121,20 @@ export class AdminController {
   ) {
     return this.adminService.deleteReview(req.user.id, id);
   }
+
+  @Put("reviews/:id/hide")
+  async toggleHideReview(
+    @Request() req: { user: { id: string } },
+    @Param("id") id: string,
+  ) {
+    return this.adminService.toggleHideReview(req.user.id, id);
+  }
+
+  @Put("requests/:id/close")
+  async closeRequest(
+    @Request() req: { user: { id: string } },
+    @Param("id") id: string,
+  ) {
+    return this.adminService.closeRequest(req.user.id, id);
+  }
 }

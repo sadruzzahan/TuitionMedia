@@ -52,6 +52,7 @@ export class AdminService {
     ]);
 
     const monthlyRevenueByMonth = await this.getMonthlyRevenue();
+    const recentActivity = await this.getRecentActivity();
 
     return {
       totalUsers,
@@ -66,7 +67,63 @@ export class AdminService {
       newUsersThisMonth,
       fulfillmentsThisMonth,
       monthlyRevenueByMonth,
+      recentActivity,
     };
+  }
+
+  private async getRecentActivity(): Promise<{ type: string; label: string; detail: string; time: Date }[]> {
+    const [recentUsers, recentConnections, recentPayments] = await Promise.all([
+      this.prisma.user.findMany({
+        orderBy: { created_at: "desc" },
+        take: 4,
+        select: { name: true, email: true, role: true, created_at: true },
+      }),
+      this.prisma.application.findMany({
+        where: { status: "CONNECTED" },
+        orderBy: { updatedAt: "desc" },
+        take: 3,
+        include: {
+          tutor: { select: { name: true } },
+          request: { select: { title: true } },
+        },
+      }),
+      this.prisma.payment.findMany({
+        where: { status: "VERIFIED" },
+        orderBy: { verifiedAt: "desc" },
+        take: 3,
+        include: { user: { select: { name: true } }, request: { select: { title: true } } },
+      }),
+    ]);
+
+    const events: { type: string; label: string; detail: string; time: Date }[] = [];
+
+    for (const u of recentUsers) {
+      events.push({
+        type: "registration",
+        label: `New ${u.role.toLowerCase()} registered`,
+        detail: u.name ?? u.email,
+        time: u.created_at,
+      });
+    }
+    for (const c of recentConnections) {
+      events.push({
+        type: "connection",
+        label: "New tutor-student connection",
+        detail: `${c.tutor.name ?? "Tutor"} for "${c.request.title}"`,
+        time: c.updatedAt,
+      });
+    }
+    for (const p of recentPayments) {
+      events.push({
+        type: "payment",
+        label: `Payment verified — ৳${Number(p.amount).toLocaleString()}`,
+        detail: `${p.user.name ?? "User"} · ${p.request.title}`,
+        time: p.verifiedAt ?? p.createdAt,
+      });
+    }
+
+    events.sort((a, b) => b.time.getTime() - a.time.getTime());
+    return events.slice(0, 10);
   }
 
   private async getMonthlyRevenue() {
@@ -429,7 +486,7 @@ export class AdminService {
         comment: r.comment,
         studentName: r.student.name ?? r.student.email,
         tutorName: r.tutor.name ?? r.tutor.email,
-        isHidden: false,
+        isHidden: r.is_hidden,
         createdAt: r.createdAt,
         dimensions: {
           ...(r.rating_communication != null ? { Communication: r.rating_communication } : {}),
@@ -458,6 +515,51 @@ export class AdminService {
         action: "DELETE_REVIEW",
         target_type: "review",
         target_id: reviewId,
+      },
+    });
+
+    return { success: true };
+  }
+
+  async toggleHideReview(adminId: string, reviewId: string) {
+    const review = await this.prisma.review.findUnique({ where: { id: reviewId } });
+    if (!review) throw new NotFoundException("Review not found");
+
+    const updated = await this.prisma.review.update({
+      where: { id: reviewId },
+      data: { is_hidden: !review.is_hidden },
+    });
+
+    await this.prisma.adminAudit.create({
+      data: {
+        id: randomUUID(),
+        admin_id: adminId,
+        action: updated.is_hidden ? "HIDE_REVIEW" : "UNHIDE_REVIEW",
+        target_type: "review",
+        target_id: reviewId,
+      },
+    });
+
+    return { success: true, isHidden: updated.is_hidden };
+  }
+
+  async closeRequest(adminId: string, requestId: string) {
+    const request = await this.prisma.tuitionRequest.findUnique({ where: { id: requestId } });
+    if (!request) throw new NotFoundException("Request not found");
+
+    await this.prisma.tuitionRequest.update({
+      where: { id: requestId },
+      data: { status: "CLOSED" },
+    });
+
+    await this.prisma.adminAudit.create({
+      data: {
+        id: randomUUID(),
+        admin_id: adminId,
+        action: "CLOSE_REQUEST",
+        target_type: "tuition_request",
+        target_id: requestId,
+        metadata: { title: request.title },
       },
     });
 
