@@ -3,9 +3,12 @@ import { PrismaService } from "../prisma/prisma.service";
 
 export interface TutorListQuery {
   subject?: string;
+  subjects?: string;
   division?: string;
   area?: string;
   gender?: string;
+  gradeLevel?: string;
+  teachingMode?: string;
   minRate?: number;
   maxRate?: number;
   sort?: "relevance" | "rating" | "rate_asc" | "rate_desc" | "newest";
@@ -20,9 +23,12 @@ export class TutorDiscoveryService {
   async findAll(query: TutorListQuery) {
     const {
       subject,
+      subjects,
       division,
       area,
       gender,
+      gradeLevel,
+      teachingMode,
       minRate,
       maxRate,
       sort = "relevance",
@@ -32,11 +38,22 @@ export class TutorDiscoveryService {
 
     const skip = (page - 1) * limit;
 
+    const subjectFilters: Record<string, unknown>[] = [];
+    if (subject) subjectFilters.push({ subjects: { has: subject } });
+    if (subjects) {
+      const arr = subjects.split(",").map((s) => s.trim()).filter(Boolean);
+      if (arr.length > 0) {
+        subjectFilters.push(...arr.map((s) => ({ subjects: { has: s } })));
+      }
+    }
+
     const where: Record<string, unknown> = {
       is_profile_public: true,
       ...(division && { division }),
       ...(area && { areas: { has: area } }),
       ...(gender && { gender }),
+      ...(gradeLevel && { grade_levels: { has: gradeLevel } }),
+      ...(teachingMode && { teaching_mode: teachingMode }),
       ...(minRate || maxRate
         ? {
             hourly_rate: {
@@ -45,9 +62,7 @@ export class TutorDiscoveryService {
             },
           }
         : {}),
-      ...(subject && {
-        subjects: { has: subject },
-      }),
+      ...(subjectFilters.length > 0 && { OR: subjectFilters }),
     };
 
     const orderBy: Record<string, unknown>[] = [];
@@ -65,10 +80,21 @@ export class TutorDiscoveryService {
       orderBy.push({ created_at: "desc" });
     }
 
-    const [total, allTutors] = await Promise.all([
+    const featuredWhere = { ...where, is_premium: true };
+    const regularWhere = { ...where, is_premium: false };
+
+    const [total, featuredTutors, regularTutors] = await Promise.all([
       this.prisma.tutorProfile.count({ where }),
       this.prisma.tutorProfile.findMany({
-        where,
+        where: featuredWhere,
+        include: {
+          user: { select: { id: true, name: true, is_verified: true } },
+        },
+        orderBy,
+        take: 6,
+      }),
+      this.prisma.tutorProfile.findMany({
+        where: regularWhere,
         include: {
           user: { select: { id: true, name: true, is_verified: true } },
         },
@@ -78,7 +104,7 @@ export class TutorDiscoveryService {
       }),
     ]);
 
-    const mapTutor = (t: typeof allTutors[0]) => ({
+    const mapTutor = (t: typeof regularTutors[0]) => ({
       id: t.user_id,
       name: t.user.name,
       bio: t.bio ? t.bio.slice(0, 120) + (t.bio.length > 120 ? "..." : "") : null,
@@ -89,6 +115,8 @@ export class TutorDiscoveryService {
       education: t.education,
       experience: t.experience,
       gender: t.gender,
+      gradeLevels: t.grade_levels,
+      teachingMode: t.teaching_mode,
       isVerified: t.is_verified,
       isPremium: t.is_premium,
       averageRating: t.average_rating ? Number(t.average_rating) : null,
@@ -96,12 +124,9 @@ export class TutorDiscoveryService {
       totalStudents: t.total_students,
     });
 
-    const featured = allTutors.filter((t) => t.is_premium).map(mapTutor);
-    const tutors = allTutors.map(mapTutor);
-
     return {
-      featured,
-      tutors,
+      featured: featuredTutors.map(mapTutor),
+      tutors: regularTutors.map(mapTutor),
       total,
       page,
       totalPages: Math.ceil(total / limit),
@@ -141,7 +166,19 @@ export class TutorDiscoveryService {
       isConnected = !!connection;
     }
 
-    const reviews = await this.prisma.review.findMany({
+    const allReviewsForBreakdown = await this.prisma.review.findMany({
+      where: { tutorId: tutorUserId },
+      select: {
+        rating: true,
+        rating_communication: true,
+        rating_knowledge: true,
+        rating_punctuality: true,
+        rating_patience: true,
+        rating_value: true,
+      },
+    });
+
+    const displayReviews = await this.prisma.review.findMany({
       where: { tutorId: tutorUserId },
       include: {
         student: { select: { name: true } },
@@ -150,7 +187,7 @@ export class TutorDiscoveryService {
       take: 5,
     });
 
-    const ratingBreakdown = this.computeRatingBreakdown(reviews);
+    const ratingBreakdown = this.computeRatingBreakdown(allReviewsForBreakdown);
 
     return {
       id: profile.user_id,
@@ -163,6 +200,8 @@ export class TutorDiscoveryService {
       education: profile.education,
       experience: profile.experience,
       gender: profile.gender,
+      gradeLevels: profile.grade_levels,
+      teachingMode: profile.teaching_mode,
       qualifications: profile.qualifications,
       isVerified: profile.is_verified,
       isPremium: profile.is_premium,
@@ -175,7 +214,7 @@ export class TutorDiscoveryService {
         ? { email: profile.user.email, phone: profile.user.phone }
         : null,
       ratingBreakdown,
-      reviews: reviews.map((r) => ({
+      reviews: displayReviews.map((r) => ({
         id: r.id,
         rating: r.rating,
         comment: r.comment,

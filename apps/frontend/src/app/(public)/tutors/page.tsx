@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { PublicNav } from "@/components/public-nav";
-import { BANGLADESH_SUBJECTS, BANGLADESH_DIVISIONS } from "@/lib/bangladesh-data";
+import { BANGLADESH_SUBJECTS, BANGLADESH_DIVISIONS, BANGLADESH_AREAS, BANGLADESH_EDUCATION_LEVELS, CLASS_MODES } from "@/lib/bangladesh-data";
 import { cn } from "@/lib/utils";
 
 type TutorCard = {
@@ -201,14 +201,22 @@ function TutorCardUI({ tutor, index, featured = false }: { tutor: TutorCard; ind
 function TutorsContent() {
   const searchParams = useSearchParams();
 
-  const [subject, setSubject] = useState(searchParams.get("subject") ?? "all");
+  const [subjects, setSubjects] = useState<string[]>(() => {
+    const s = searchParams.get("subjects");
+    return s ? s.split(",").filter(Boolean) : [];
+  });
   const [division, setDivision] = useState(searchParams.get("division") ?? "all");
+  const [area, setArea] = useState(searchParams.get("area") ?? "all");
   const [gender, setGender] = useState(searchParams.get("gender") ?? "all");
+  const [gradeLevel, setGradeLevel] = useState(searchParams.get("gradeLevel") ?? "all");
+  const [teachingMode, setTeachingMode] = useState(searchParams.get("teachingMode") ?? "all");
   const [minRate, setMinRate] = useState(searchParams.get("minRate") ?? "");
   const [maxRate, setMaxRate] = useState(searchParams.get("maxRate") ?? "");
   const [sort, setSort] = useState<string>(searchParams.get("sort") ?? "relevance");
   const [page, setPage] = useState(Number(searchParams.get("page") ?? "1"));
   const [showFilters, setShowFilters] = useState(false);
+
+  const areaOptions = division !== "all" ? (BANGLADESH_AREAS as Record<string, readonly string[]>)[division] ?? [] : [];
 
   const [data, setData] = useState<TutorListResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -217,9 +225,12 @@ function TutorsContent() {
     setLoading(true);
     try {
       const params = new URLSearchParams();
-      if (subject !== "all") params.set("subject", subject);
+      if (subjects.length > 0) params.set("subjects", subjects.join(","));
       if (division !== "all") params.set("division", division);
+      if (area !== "all") params.set("area", area);
       if (gender !== "all") params.set("gender", gender);
+      if (gradeLevel !== "all") params.set("gradeLevel", gradeLevel);
+      if (teachingMode !== "all") params.set("teachingMode", teachingMode);
       if (minRate) params.set("minRate", minRate);
       if (maxRate) params.set("maxRate", maxRate);
       params.set("sort", sort);
@@ -235,20 +246,38 @@ function TutorsContent() {
     } finally {
       setLoading(false);
     }
-  }, [subject, division, gender, minRate, maxRate, sort, page]);
+  }, [subjects, division, area, gender, gradeLevel, teachingMode, minRate, maxRate, sort, page]);
 
   useEffect(() => {
     fetchTutors();
   }, [fetchTutors]);
 
-  const hasFilters = subject !== "all" || division !== "all" || gender !== "all" || minRate || maxRate;
+  const activeFilterCount = [
+    subjects.length > 0,
+    division !== "all",
+    area !== "all",
+    gender !== "all",
+    gradeLevel !== "all",
+    teachingMode !== "all",
+    !!minRate,
+    !!maxRate,
+  ].filter(Boolean).length;
+  const hasFilters = activeFilterCount > 0;
 
   const clearFilters = () => {
-    setSubject("all");
+    setSubjects([]);
     setDivision("all");
+    setArea("all");
     setGender("all");
+    setGradeLevel("all");
+    setTeachingMode("all");
     setMinRate("");
     setMaxRate("");
+    setPage(1);
+  };
+
+  const toggleSubject = (s: string) => {
+    setSubjects((prev) => prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]);
     setPage(1);
   };
 
@@ -296,7 +325,7 @@ function TutorsContent() {
               Filters
               {hasFilters && (
                 <span className="ml-1 rounded-full bg-cyan-500 px-1.5 py-0.5 text-[10px] text-black font-bold">
-                  {[subject !== "all", division !== "all", !!minRate, !!maxRate].filter(Boolean).length}
+                  {activeFilterCount}
                 </span>
               )}
             </Button>
@@ -313,60 +342,138 @@ function TutorsContent() {
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
-              className="glass-card rounded-xl p-4 max-w-2xl mx-auto"
+              className="glass-card rounded-xl p-5 max-w-3xl mx-auto"
             >
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-5">
+                {/* Subjects Multi-Select */}
                 <div>
-                  <label className="text-xs text-muted-foreground mb-1.5 block">Subject</label>
-                  <Select value={subject} onValueChange={(v) => { setSubject(v); setPage(1); }}>
-                    <SelectTrigger className="bg-white/5">
-                      <SelectValue placeholder="All subjects" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All subjects</SelectItem>
-                      {BANGLADESH_SUBJECTS.map((s) => (
-                        <SelectItem key={s} value={s}>{s}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <label className="text-xs text-muted-foreground mb-2 block">
+                    Subjects {subjects.length > 0 && <span className="text-cyan-400 ml-1">({subjects.length} selected)</span>}
+                  </label>
+                  <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto pr-1">
+                    {BANGLADESH_SUBJECTS.map((s) => (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => toggleSubject(s)}
+                        className={cn(
+                          "rounded-full border px-2.5 py-0.5 text-xs transition-all",
+                          subjects.includes(s)
+                            ? "border-cyan-500/50 bg-cyan-500/15 text-cyan-400"
+                            : "border-white/10 bg-white/5 text-muted-foreground hover:border-white/20"
+                        )}
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                  {subjects.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => { setSubjects([]); setPage(1); }}
+                      className="mt-1.5 text-xs text-muted-foreground hover:text-white transition-colors"
+                    >
+                      Clear subjects
+                    </button>
+                  )}
                 </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {/* Grade Level */}
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1.5 block">Grade / Level</label>
+                    <Select value={gradeLevel} onValueChange={(v) => { setGradeLevel(v); setPage(1); }}>
+                      <SelectTrigger className="bg-white/5">
+                        <SelectValue placeholder="All levels" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All levels</SelectItem>
+                        {BANGLADESH_EDUCATION_LEVELS.map((l) => (
+                          <SelectItem key={l} value={l}>{l}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Teaching Mode */}
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1.5 block">Teaching Mode</label>
+                    <Select value={teachingMode} onValueChange={(v) => { setTeachingMode(v); setPage(1); }}>
+                      <SelectTrigger className="bg-white/5">
+                        <SelectValue placeholder="Any mode" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Any mode</SelectItem>
+                        {CLASS_MODES.map((m) => (
+                          <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Division */}
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1.5 block">Division</label>
+                    <Select value={division} onValueChange={(v) => { setDivision(v); setArea("all"); setPage(1); }}>
+                      <SelectTrigger className="bg-white/5">
+                        <SelectValue placeholder="All divisions" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All divisions</SelectItem>
+                        {BANGLADESH_DIVISIONS.map((d) => (
+                          <SelectItem key={d} value={d}>{d}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Area */}
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1.5 block">Area / Neighbourhood</label>
+                    <Select
+                      value={area}
+                      onValueChange={(v) => { setArea(v); setPage(1); }}
+                      disabled={division === "all"}
+                    >
+                      <SelectTrigger className="bg-white/5">
+                        <SelectValue placeholder={division === "all" ? "Select division first" : "All areas"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All areas</SelectItem>
+                        {areaOptions.map((a) => (
+                          <SelectItem key={a} value={a}>{a}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Budget Range */}
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1.5 block">Min Rate (৳/hr)</label>
+                    <Input
+                      type="number"
+                      value={minRate}
+                      onChange={(e) => { setMinRate(e.target.value); setPage(1); }}
+                      placeholder="e.g. 200"
+                      className="bg-white/5 border-white/10"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1.5 block">Max Rate (৳/hr)</label>
+                    <Input
+                      type="number"
+                      value={maxRate}
+                      onChange={(e) => { setMaxRate(e.target.value); setPage(1); }}
+                      placeholder="e.g. 1000"
+                      className="bg-white/5 border-white/10"
+                    />
+                  </div>
+                </div>
+
+                {/* Gender Preference */}
                 <div>
-                  <label className="text-xs text-muted-foreground mb-1.5 block">Division</label>
-                  <Select value={division} onValueChange={(v) => { setDivision(v); setPage(1); }}>
-                    <SelectTrigger className="bg-white/5">
-                      <SelectValue placeholder="All divisions" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All divisions</SelectItem>
-                      {BANGLADESH_DIVISIONS.map((d) => (
-                        <SelectItem key={d} value={d}>{d}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground mb-1.5 block">Min Rate (৳/hr)</label>
-                  <Input
-                    type="number"
-                    value={minRate}
-                    onChange={(e) => { setMinRate(e.target.value); setPage(1); }}
-                    placeholder="e.g. 200"
-                    className="bg-white/5 border-white/10"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground mb-1.5 block">Max Rate (৳/hr)</label>
-                  <Input
-                    type="number"
-                    value={maxRate}
-                    onChange={(e) => { setMaxRate(e.target.value); setPage(1); }}
-                    placeholder="e.g. 1000"
-                    className="bg-white/5 border-white/10"
-                  />
-                </div>
-                <div className="sm:col-span-2">
                   <label className="text-xs text-muted-foreground mb-1.5 block">Tutor Gender Preference</label>
-                  <div className="flex gap-3">
+                  <div className="flex gap-2">
                     {[
                       { value: "all", label: "Any" },
                       { value: "Male", label: "Male" },
