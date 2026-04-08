@@ -11,6 +11,8 @@ import { TutorDiscoveryModule } from "./tutor-discovery/tutor-discovery.module";
 import { NotificationModule } from "./notification/notification.module";
 import { ChatModule } from "./chat/chat.module";
 import { SessionModule } from "./session/session.module";
+import { ReviewModule } from "./review/review.module";
+import { DocumentModule } from "./document/document.module";
 
 @Module({
   imports: [
@@ -24,6 +26,8 @@ import { SessionModule } from "./session/session.module";
     NotificationModule,
     ChatModule,
     SessionModule,
+    ReviewModule,
+    DocumentModule,
   ],
   controllers: [AppController],
   providers: [AppService],

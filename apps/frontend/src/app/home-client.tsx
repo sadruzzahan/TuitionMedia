@@ -422,7 +422,7 @@ export default function LandingPage() {
               className="flex items-center justify-between mb-10"
             >
               <div>
-                <span className="text-sm font-medium text-cyan-400 uppercase tracking-wider">Featured Tutors</span>
+                <span className="text-sm font-medium text-cyan-400 uppercase tracking-wider">Top Rated Tutors</span>
                 <h2 className="mt-1 text-3xl font-bold">সেরা টিউটরদের সাথে পরিচয় হন</h2>
               </div>
               <Link href="/tutors" className="hidden sm:flex items-center gap-1 text-sm text-cyan-400 hover:underline">

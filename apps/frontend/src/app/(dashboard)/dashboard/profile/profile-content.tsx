@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { motion } from "motion/react";
 import {
   Save,
@@ -15,6 +15,13 @@ import {
   Shield,
   Eye,
   EyeOff,
+  Upload,
+  FileText,
+  Clock,
+  CheckCircle,
+  XCircle,
+  Loader2,
+  BadgeCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,7 +29,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuthStore } from "@/store/auth-store";
-import { apiGet, apiPut } from "@/lib/api";
+import { apiGet, apiPut, apiPost } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
@@ -154,12 +161,259 @@ function ProfileProgress({
 const TABS_TUTOR = [
   { id: "account", label: "Account Info", icon: User },
   { id: "tutor", label: "Tutor Profile", icon: GraduationCap },
+  { id: "verification", label: "Verification", icon: Shield },
 ];
 
 const TABS_STUDENT = [
   { id: "account", label: "Account Info", icon: User },
   { id: "student", label: "Student Profile", icon: BookOpen },
 ];
+
+type DocumentRecord = {
+  id: string;
+  type: string;
+  file_url: string;
+  status: "PENDING" | "APPROVED" | "REJECTED";
+  reason: string | null;
+  created_at: string;
+};
+
+const DOC_TYPES = [
+  { value: "NID", label: "National ID (NID)" },
+  { value: "PASSPORT", label: "Passport" },
+  { value: "DEGREE_CERTIFICATE", label: "Degree Certificate" },
+  { value: "TEACHING_CERTIFICATE", label: "Teaching Certificate" },
+  { value: "STUDENT_ID", label: "Student ID Card" },
+  { value: "OTHER", label: "Other Document" },
+];
+
+function VerificationTab({ isVerified }: { isVerified: boolean }) {
+  const [documents, setDocuments] = useState<DocumentRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const [docType, setDocType] = useState(DOC_TYPES[0].value);
+  const [fileBase64, setFileBase64] = useState<string | null>(null);
+  const [fileName, setFileName] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  async function loadDocuments() {
+    try {
+      const docs = await apiGet<DocumentRecord[]>("/documents/my");
+      setDocuments(docs);
+    } catch {
+      setDocuments([]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadDocuments();
+  }, []);
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: "File too large", description: "Maximum file size is 5MB", variant: "destructive" });
+      return;
+    }
+
+    const allowed = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
+    if (!allowed.includes(file.type)) {
+      toast({ title: "Invalid file type", description: "Please upload a JPG, PNG, WebP, or PDF", variant: "destructive" });
+      return;
+    }
+
+    setFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const result = ev.target?.result as string;
+      setFileBase64(result);
+    };
+    reader.readAsDataURL(file);
+  }
+
+  async function handleUpload() {
+    if (!fileBase64) {
+      toast({ title: "Please select a file first", variant: "destructive" });
+      return;
+    }
+
+    setUploading(true);
+    try {
+      await apiPost("/documents", {
+        type: docType,
+        fileUrl: fileBase64,
+      });
+      toast({ title: "Document submitted!", description: "Our team will review it within 24-48 hours.", variant: "success" });
+      setFileBase64(null);
+      setFileName(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      await loadDocuments();
+    } catch (err) {
+      toast({
+        title: "Upload failed",
+        description: err instanceof Error ? err.message : undefined,
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  const statusConfig = {
+    PENDING: { label: "Under Review", color: "bg-amber-500/20 text-amber-400", icon: Clock },
+    APPROVED: { label: "Approved", color: "bg-emerald-500/20 text-emerald-400", icon: CheckCircle },
+    REJECTED: { label: "Rejected", color: "bg-red-500/20 text-red-400", icon: XCircle },
+  };
+
+  return (
+    <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="space-y-5">
+      {isVerified && (
+        <div className="flex items-center gap-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 p-4">
+          <BadgeCheck className="h-6 w-6 text-emerald-400 shrink-0" />
+          <div>
+            <p className="text-sm font-medium text-emerald-400">Profile Verified</p>
+            <p className="text-xs text-muted-foreground">Your identity has been verified. Students can see your verified badge.</p>
+          </div>
+        </div>
+      )}
+
+      {!isVerified && (
+        <div className="rounded-xl bg-amber-500/10 border border-amber-500/20 p-4">
+          <p className="text-sm font-medium text-amber-400 mb-1">Get Verified</p>
+          <p className="text-xs text-muted-foreground">
+            Submit identity or qualification documents to receive a verified badge on your profile.
+            Verified tutors get significantly more student inquiries.
+          </p>
+        </div>
+      )}
+
+      <Card className="glass-card">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Upload className="h-5 w-5 text-cyan-400" />
+            Submit a Document
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label>Document Type</Label>
+            <select
+              value={docType}
+              onChange={(e) => setDocType(e.target.value)}
+              className="w-full rounded-lg bg-white/5 border border-white/10 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+            >
+              {DOC_TYPES.map((dt) => (
+                <option key={dt.value} value={dt.value} className="bg-background">
+                  {dt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-2">
+            <Label>File (JPG, PNG, WebP, or PDF — max 5MB)</Label>
+            <div
+              className={cn(
+                "flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed p-6 transition-colors cursor-pointer",
+                fileName
+                  ? "border-cyan-500/40 bg-cyan-500/5"
+                  : "border-white/10 bg-white/5 hover:border-white/20"
+              )}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              {fileName ? (
+                <>
+                  <FileText className="h-8 w-8 text-cyan-400" />
+                  <p className="text-sm font-medium text-cyan-400">{fileName}</p>
+                  <p className="text-xs text-muted-foreground">Click to change file</p>
+                </>
+              ) : (
+                <>
+                  <Upload className="h-8 w-8 text-muted-foreground/50" />
+                  <p className="text-sm text-muted-foreground">Click to upload document</p>
+                  <p className="text-xs text-muted-foreground/60">JPG, PNG, WebP, PDF</p>
+                </>
+              )}
+            </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,application/pdf"
+              onChange={handleFileChange}
+              className="hidden"
+            />
+          </div>
+
+          <Button
+            variant="gradient"
+            onClick={handleUpload}
+            disabled={uploading || !fileBase64}
+            className="w-full gap-2"
+          >
+            {uploading ? (
+              <><Loader2 className="h-4 w-4 animate-spin" />Submitting...</>
+            ) : (
+              <><Upload className="h-4 w-4" />Submit Document</>
+            )}
+          </Button>
+        </CardContent>
+      </Card>
+
+      {loading ? (
+        <div className="space-y-3">
+          {[1, 2].map((i) => <div key={i} className="h-16 rounded-xl bg-white/5 animate-pulse" />)}
+        </div>
+      ) : documents.length > 0 ? (
+        <Card className="glass-card">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <FileText className="h-5 w-5 text-cyan-400" />
+              Submitted Documents
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {documents.map((doc) => {
+              const cfg = statusConfig[doc.status];
+              const docLabel = DOC_TYPES.find((dt) => dt.value === doc.type)?.label ?? doc.type;
+              return (
+                <div key={doc.id} className="flex items-start justify-between gap-3 rounded-lg bg-white/5 p-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium">{docLabel}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {new Date(doc.created_at).toLocaleDateString("en-BD", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </p>
+                    {doc.status === "REJECTED" && doc.reason && (
+                      <p className="text-xs text-red-400 mt-1">{doc.reason}</p>
+                    )}
+                  </div>
+                  <span className={cn("flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium shrink-0", cfg.color)}>
+                    <cfg.icon className="h-3 w-3" />
+                    {cfg.label}
+                  </span>
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
+      ) : (
+        <Card className="glass-card">
+          <CardContent className="py-8 text-center">
+            <Shield className="mx-auto h-10 w-10 text-muted-foreground/40 mb-3" />
+            <p className="text-sm text-muted-foreground">No documents submitted yet</p>
+          </CardContent>
+        </Card>
+      )}
+    </motion.div>
+  );
+}
 
 export default function ProfilePage() {
   const user = useAuthStore((s) => s.user);
@@ -576,6 +830,11 @@ export default function ProfilePage() {
             </CardContent>
           </Card>
         </motion.div>
+      )}
+
+      {/* Tab: Verification */}
+      {activeTab === "verification" && profile?.role === "TUTOR" && (
+        <VerificationTab isVerified={tutorProfile?.is_verified ?? false} />
       )}
 
       {/* Tab: Student Profile */}

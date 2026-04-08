@@ -1,0 +1,50 @@
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  Param,
+  UseGuards,
+  Request,
+} from "@nestjs/common";
+import { DocumentService } from "./document.service";
+import { JwtAuthGuard } from "../auth/jwt-auth.guard";
+
+@Controller("documents")
+export class DocumentController {
+  constructor(private readonly documentService: DocumentService) {}
+
+  @UseGuards(JwtAuthGuard)
+  @Post()
+  async upload(
+    @Request() req: { user: { id: string } },
+    @Body() body: { type: string; fileUrl: string },
+  ) {
+    return this.documentService.uploadDocument(req.user.id, body);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get("my")
+  async getMyDocuments(@Request() req: { user: { id: string } }) {
+    return this.documentService.getMyDocuments(req.user.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post(":id/approve")
+  async approve(
+    @Request() req: { user: { id: string; role: string } },
+    @Param("id") id: string,
+  ) {
+    return this.documentService.approveDocument(req.user.id, id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post(":id/reject")
+  async reject(
+    @Request() req: { user: { id: string; role: string } },
+    @Param("id") id: string,
+    @Body() body: { reason?: string },
+  ) {
+    return this.documentService.rejectDocument(req.user.id, id, body.reason);
+  }
+}
