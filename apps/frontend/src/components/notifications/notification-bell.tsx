@@ -7,6 +7,7 @@ import { apiGet, apiPost } from "@/lib/api";
 import { formatDistanceToNow } from "@/lib/date-utils";
 import { cn } from "@/lib/utils";
 import { useSocket } from "@/hooks/use-socket";
+import { useAuthStore } from "@/store/auth-store";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 
@@ -17,7 +18,7 @@ type Notification = {
   message: string;
   is_read: boolean;
   created_at: string;
-  data?: { applicationId?: string; requestId?: string };
+  data?: { applicationId?: string; requestId?: string; messageId?: string };
 };
 
 function NotifIcon({ type }: { type: string }) {
@@ -36,6 +37,8 @@ interface NotificationBellProps {
 
 export function NotificationBell({ compact = false }: NotificationBellProps) {
   const router = useRouter();
+  const user = useAuthStore((s) => s.user);
+  const isStudent = user?.role === "STUDENT";
   const token =
     typeof window !== "undefined" ? localStorage.getItem("tuitionmedia_token") : null;
   const { on } = useSocket(token);
@@ -111,15 +114,25 @@ export function NotificationBell({ compact = false }: NotificationBellProps) {
     setOpen(false);
 
     const { applicationId, requestId } = notif.data ?? {};
+
     if (notif.type === "NEW_APPLICATION" && requestId) {
       router.push(`/dashboard/student/${requestId}`);
-    } else if (notif.type === "NEW_MESSAGE" && applicationId) {
-      router.push(`/dashboard/tutor/applications`);
-    } else if (
-      (notif.type === "APPLICATION_ACCEPTED" || notif.type === "PAYMENT_VERIFIED") &&
-      applicationId
-    ) {
-      router.push(`/dashboard/tutor/applications`);
+    } else if (notif.type === "NEW_MESSAGE") {
+      if (isStudent && requestId) {
+        router.push(`/dashboard/student/${requestId}`);
+      } else {
+        router.push(`/dashboard/tutor/applications`);
+      }
+    } else if (notif.type === "APPLICATION_ACCEPTED" || notif.type === "APPLICATION_REJECTED") {
+      router.push(isStudent ? `/dashboard/student` : `/dashboard/tutor/applications`);
+    } else if (notif.type === "PAYMENT_VERIFIED") {
+      if (isStudent && requestId) {
+        router.push(`/dashboard/student/${requestId}`);
+      } else {
+        router.push(`/dashboard/tutor/applications`);
+      }
+    } else if (applicationId) {
+      router.push(isStudent ? `/dashboard/student` : `/dashboard/tutor/applications`);
     }
   };
 

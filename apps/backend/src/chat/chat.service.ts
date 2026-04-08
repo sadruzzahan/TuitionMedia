@@ -29,10 +29,10 @@ export class ChatService {
     applicationId: string,
     senderId: string,
     content: string,
-  ): Promise<{ message: { id: string; applicationId: string; senderId: string; content: string; createdAt: Date; readAt: Date | null; sender: { name: string | null; email: string } }; recipientId: string }> {
+  ): Promise<{ message: { id: string; applicationId: string; senderId: string; content: string; createdAt: Date; readAt: Date | null; sender: { name: string | null; email: string } }; recipientId: string; requestId: string }> {
     const app = await this.prisma.application.findUnique({
       where: { id: applicationId },
-      include: { request: { select: { studentId: true, contact_unlocked: true } } },
+      include: { request: { select: { id: true, studentId: true, contact_unlocked: true } } },
     });
     if (!app) throw new NotFoundException("Application not found");
 
@@ -50,7 +50,7 @@ export class ChatService {
 
     const recipientId = isStudent ? app.tutorId : app.request.studentId;
 
-    return { message: { ...message, applicationId: message.applicationId }, recipientId };
+    return { message: { ...message, applicationId: message.applicationId }, recipientId, requestId: app.request.id };
   }
 
   async getMessages(applicationId: string, userId: string, cursor?: string) {
@@ -67,14 +67,26 @@ export class ChatService {
       throw new ForbiddenException("Chat not available yet");
     }
 
+    const PAGE_SIZE = 50;
+
     const messages = await this.prisma.message.findMany({
-      where: { applicationId, ...(cursor ? { id: { lt: cursor } } : {}) },
+      where: {
+        applicationId,
+        ...(cursor ? { createdAt: { lt: new Date(cursor) } } : {}),
+      },
       include: { sender: { select: { name: true, email: true } } },
       orderBy: { createdAt: "desc" },
-      take: 50,
+      take: PAGE_SIZE + 1,
     });
 
-    return messages.reverse();
+    const hasMore = messages.length > PAGE_SIZE;
+    if (hasMore) messages.pop();
+
+    const items = messages.reverse();
+    const firstItem = items[0];
+    const nextCursor = hasMore && firstItem ? firstItem.createdAt.toISOString() : null;
+
+    return { items, hasMore, nextCursor };
   }
 
   async markRead(applicationId: string, userId: string) {

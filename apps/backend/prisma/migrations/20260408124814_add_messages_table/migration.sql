@@ -1,7 +1,3 @@
--- AlterTable
-ALTER TABLE "tutor_profiles" ALTER COLUMN "grade_levels" DROP DEFAULT,
-ALTER COLUMN "available_days" DROP DEFAULT;
-
 -- CreateTable
 CREATE TABLE "messages" (
     "id" TEXT NOT NULL,

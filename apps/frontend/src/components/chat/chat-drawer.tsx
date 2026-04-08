@@ -44,9 +44,9 @@ export function ChatDrawer({ applicationId, recipientName, onClose }: ChatDrawer
   }, []);
 
   useEffect(() => {
-    apiGet<ChatMessage[]>(`/messages/${applicationId}`)
+    apiGet<{ items: ChatMessage[]; hasMore: boolean; nextCursor: string | null }>(`/messages/${applicationId}`)
       .then((data) => {
-        setMessages(data);
+        setMessages(data.items);
         setLoading(false);
       })
       .catch(() => setLoading(false));

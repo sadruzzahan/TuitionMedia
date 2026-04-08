@@ -101,7 +101,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
     if (!data.content?.trim()) return;
 
     try {
-      const { message, recipientId } = await this.chatService.createMessage(
+      const { message, recipientId, requestId } = await this.chatService.createMessage(
         data.applicationId,
         client.userId,
         data.content.trim(),
@@ -114,7 +114,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
         type: "NEW_MESSAGE",
         title: "New message",
         message: data.content.trim().slice(0, 80),
-        data: { applicationId: data.applicationId, messageId: message.id },
+        data: { applicationId: data.applicationId, messageId: message.id, requestId },
       });
     } catch {
       client.emit("error", { message: "Failed to send message" });
