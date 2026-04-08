@@ -11,7 +11,7 @@ channel = "stable-25_05"
 [userenv.shared]
 PORT = "3001"
 FRONTEND_URL = "https://27629f43-4b4d-4afc-b75f-7d4b9722b3ce-00-22weasf0obltp.spock.replit.dev"
-NEXT_PUBLIC_API_URL = "http://localhost:3001"
+NEXT_PUBLIC_API_URL = "/api"
 NODE_ENV = "development"
 
 [workflows]

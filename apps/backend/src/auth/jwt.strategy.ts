@@ -5,9 +5,9 @@ import type { JwtPayload } from "./auth.service";
 import { AuthService } from "./auth.service";
 
 function getJwtSecret(): string {
-  const secret = process.env.JWT_SECRET;
+  const secret = process.env.SESSION_SECRET || process.env.JWT_SECRET;
   if (!secret) {
-    throw new Error("JWT_SECRET environment variable is required");
+    throw new Error("SESSION_SECRET environment variable is required");
   }
   return secret;
 }

@@ -25,7 +25,14 @@
   },
   "pnpm": {
     "onlyBuiltDependencies": [
-      "@pnpm/exe"
+      "@pnpm/exe",
+      "@nestjs/core",
+      "@prisma/client",
+      "@prisma/engines",
+      "esbuild",
+      "prisma",
+      "sharp",
+      "unrs-resolver"
     ]
   }
 }

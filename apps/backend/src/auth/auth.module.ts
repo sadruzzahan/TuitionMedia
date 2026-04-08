@@ -6,9 +6,9 @@ import { AuthService } from "./auth.service";
 import { JwtStrategy } from "./jwt.strategy";
 import { PrismaModule } from "../prisma/prisma.module";
 
-const jwtSecret = process.env.JWT_SECRET;
+const jwtSecret = process.env.SESSION_SECRET || process.env.JWT_SECRET;
 if (!jwtSecret) {
-  throw new Error("JWT_SECRET environment variable is required");
+  throw new Error("SESSION_SECRET environment variable is required");
 }
 
 @Module({
