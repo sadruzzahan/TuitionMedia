@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  transpilePackages: ["shared-schema"],
+  transpilePackages: ["shared-schema", "lucide-react"],
   async rewrites() {
     return [
       {
