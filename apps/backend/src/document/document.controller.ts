@@ -16,7 +16,8 @@ import { Roles } from "../auth/roles.decorator";
 export class DocumentController {
   constructor(private readonly documentService: DocumentService) {}
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("TUTOR")
   @Post()
   async upload(
     @Request() req: { user: { id: string } },
@@ -25,7 +26,8 @@ export class DocumentController {
     return this.documentService.uploadDocument(req.user.id, body);
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("TUTOR")
   @Get("my")
   async getMyDocuments(@Request() req: { user: { id: string } }) {
     return this.documentService.getMyDocuments(req.user.id);

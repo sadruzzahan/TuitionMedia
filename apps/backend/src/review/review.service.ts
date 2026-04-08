@@ -138,10 +138,24 @@ export class ReviewService {
   }
 
   async getReviewsForTutor(tutorId: string, page = 1, limit = 10) {
+    const tutorProfile = await this.prisma.tutorProfile.findUnique({
+      where: { user_id: tutorId },
+    });
+
+    if (!tutorProfile) {
+      return { reviews: [], total: 0, page, totalPages: 0 };
+    }
+
     const skip = (page - 1) * limit;
+
+    const studentReviewFilter = {
+      tutorId,
+      NOT: { studentId: tutorId },
+    };
+
     const [reviews, total] = await Promise.all([
       this.prisma.review.findMany({
-        where: { tutorId },
+        where: studentReviewFilter,
         include: {
           student: { select: { name: true } },
         },
@@ -149,7 +163,7 @@ export class ReviewService {
         skip,
         take: limit,
       }),
-      this.prisma.review.count({ where: { tutorId } }),
+      this.prisma.review.count({ where: studentReviewFilter }),
     ]);
 
     return {
