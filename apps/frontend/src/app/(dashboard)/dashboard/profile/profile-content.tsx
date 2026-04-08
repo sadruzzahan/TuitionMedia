@@ -41,7 +41,8 @@ type TutorProfile = {
   subjects: string[];
   hourly_rate: string;
   education: string | null;
-  location: string | null;
+  division: string | null;
+  areas: string[];
   experience: number;
   is_verified: boolean;
   is_profile_public: boolean;
@@ -55,7 +56,8 @@ type StudentProfile = {
   school: string | null;
   subjects: string[];
   goals: string | null;
-  location: string | null;
+  division: string | null;
+  areas: string[];
 };
 
 function SubjectTag({ subject, onRemove }: { subject: string; onRemove: () => void }) {
@@ -93,7 +95,7 @@ function ProfileProgress({
       { label: "Subjects added", done: (tutorProfile?.subjects?.length ?? 0) > 0 },
       { label: "Hourly rate set", done: !!tutorProfile?.hourly_rate },
       { label: "Education filled", done: !!tutorProfile?.education },
-      { label: "Location added", done: !!tutorProfile?.location },
+      { label: "Division / Area", done: !!(tutorProfile?.division || (tutorProfile?.areas?.length ?? 0) > 0) },
     );
   } else {
     items.push(
@@ -202,7 +204,7 @@ export default function ProfilePage() {
             setBio(tp.bio ?? "");
             setHourlyRate(tp.hourly_rate ? String(tp.hourly_rate) : "");
             setEducation(tp.education ?? "");
-            setLocation(tp.location ?? "");
+            setLocation(tp.division ?? "");
             setExperience(tp.experience ? String(tp.experience) : "");
             setSubjects(tp.subjects ?? []);
             setIsProfilePublic(tp.is_profile_public ?? true);
@@ -214,7 +216,7 @@ export default function ProfilePage() {
             setGrade(sp.grade ?? "");
             setSchool(sp.school ?? "");
             setGoals(sp.goals ?? "");
-            setStudentLocation(sp.location ?? "");
+            setStudentLocation(sp.division ?? "");
             setStudentSubjects(sp.subjects ?? []);
           }
         }
@@ -252,7 +254,7 @@ export default function ProfilePage() {
         subjects,
         hourly_rate: hourlyRate ? Number(hourlyRate) : undefined,
         education: education.trim() || undefined,
-        location: location.trim() || undefined,
+        division: location.trim() || undefined,
         experience: experience ? Number(experience) : undefined,
       });
       setTutorProfile(updated);
@@ -293,7 +295,7 @@ export default function ProfilePage() {
         school: school.trim() || undefined,
         subjects: studentSubjects,
         goals: goals.trim() || undefined,
-        location: studentLocation.trim() || undefined,
+        division: studentLocation.trim() || undefined,
       });
       setStudentProfile(updated);
       toast({ title: "Student profile saved!", variant: "success" });

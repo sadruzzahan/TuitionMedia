@@ -132,12 +132,26 @@ export default async function TutorProfilePage({ params }: { params: Promise<{ i
     "@type": "Person",
     name: tutor.name,
     description: tutor.bio,
+    jobTitle: "Tutor",
+    worksFor: {
+      "@type": "Organization",
+      name: "TuitionMedia",
+      url: "https://tuitionmedia.com",
+    },
     knowsAbout: tutor.subjects,
     address: {
       "@type": "PostalAddress",
       addressRegion: tutor.division,
       addressCountry: "BD",
     },
+    ...(tutor.hourlyRate && {
+      offers: {
+        "@type": "Offer",
+        priceCurrency: "BDT",
+        price: tutor.hourlyRate,
+        availability: "https://schema.org/InStock",
+      },
+    }),
     ...(tutor.averageRating && {
       aggregateRating: {
         "@type": "AggregateRating",
