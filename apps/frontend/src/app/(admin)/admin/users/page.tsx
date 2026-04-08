@@ -345,7 +345,7 @@ export default function AdminUsersPage() {
                       {[
                         { label: "Subjects", value: ((userDetail.tutor_profile as Record<string, unknown>)?.subjects as string[])?.join(", ") || "—" },
                         { label: "Rate/hr", value: (userDetail.tutor_profile as Record<string, unknown>)?.hourly_rate ? `৳${(userDetail.tutor_profile as Record<string, unknown>).hourly_rate}` : "—" },
-                        { label: "Experience", value: (userDetail.tutor_profile as Record<string, unknown>)?.experience_years ? `${(userDetail.tutor_profile as Record<string, unknown>).experience_years} yrs` : "—" },
+                        { label: "Experience", value: (userDetail.tutor_profile as Record<string, unknown>)?.experience != null ? `${(userDetail.tutor_profile as Record<string, unknown>).experience} yrs` : "—" },
                       ].map(({ label, value }) => (
                         <div key={label} className="flex justify-between text-xs py-0.5">
                           <span className="text-muted-foreground">{label}</span>

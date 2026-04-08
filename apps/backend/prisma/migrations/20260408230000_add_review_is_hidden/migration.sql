@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "reviews" ADD COLUMN IF NOT EXISTS "is_hidden" BOOLEAN NOT NULL DEFAULT false;

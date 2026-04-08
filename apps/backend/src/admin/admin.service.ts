@@ -209,11 +209,51 @@ export class AdminService {
   async getUserDetail(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      include: {
-        tutor_profile: true,
-        student_profile: true,
-        applications: { select: { id: true, status: true }, take: 5 },
-        tuition_requests: { select: { id: true, status: true, title: true }, take: 5 },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        role: true,
+        is_active: true,
+        is_verified: true,
+        created_at: true,
+        tutor_profile: {
+          select: {
+            bio: true,
+            subjects: true,
+            hourly_rate: true,
+            experience: true,
+            is_verified: true,
+            is_premium: true,
+            average_rating: true,
+            total_reviews: true,
+            total_students: true,
+            division: true,
+            areas: true,
+            gender: true,
+            grade_levels: true,
+            teaching_mode: true,
+          },
+        },
+        student_profile: {
+          select: {
+            id: true,
+            grade: true,
+            subjects: true,
+            school: true,
+          },
+        },
+        applications: {
+          select: { id: true, status: true, createdAt: true },
+          take: 5,
+          orderBy: { createdAt: "desc" },
+        },
+        tuition_requests: {
+          select: { id: true, status: true, title: true, createdAt: true },
+          take: 5,
+          orderBy: { createdAt: "desc" },
+        },
       },
     });
     if (!user) throw new NotFoundException("User not found");

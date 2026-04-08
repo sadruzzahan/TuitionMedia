@@ -171,7 +171,7 @@ export class TutorDiscoveryService {
     }
 
     const allReviewsForBreakdown = await this.prisma.review.findMany({
-      where: { tutorId: tutorUserId },
+      where: { tutorId: tutorUserId, is_hidden: false },
       select: {
         rating: true,
         rating_communication: true,
@@ -183,7 +183,7 @@ export class TutorDiscoveryService {
     });
 
     const displayReviews = await this.prisma.review.findMany({
-      where: { tutorId: tutorUserId },
+      where: { tutorId: tutorUserId, is_hidden: false },
       include: {
         student: { select: { name: true } },
       },

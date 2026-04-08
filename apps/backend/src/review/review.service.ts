@@ -159,6 +159,7 @@ export class ReviewService {
     const studentReviewFilter = {
       tutorId,
       NOT: { studentId: tutorId },
+      is_hidden: false,
     };
 
     const [reviews, total] = await Promise.all([
