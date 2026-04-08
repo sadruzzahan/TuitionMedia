@@ -82,7 +82,7 @@ export class TuitionRequestService {
         student: { select: { email: true, name: true, phone: true } },
         applications: {
           include: {
-            tutor: { select: { email: true, name: true, phone: true } },
+            tutor: { select: { id: true, email: true, name: true, phone: true } },
           },
         },
       },

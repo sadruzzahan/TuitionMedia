@@ -106,7 +106,6 @@ export class SessionService {
         slotStart.setHours(slot.startHour, 0, 0, 0);
 
         if (slotStart <= now) {
-          current.setDate(current.getDate() + 1);
           continue;
         }
 
@@ -141,6 +140,54 @@ export class SessionService {
 
     const scheduledAt = new Date(data.scheduledAt);
     if (scheduledAt <= new Date()) throw new BadRequestException("Session must be in the future");
+
+    const ALLOWED_DURATIONS = [30, 60, 90, 120];
+    if (!ALLOWED_DURATIONS.includes(data.durationMinutes)) {
+      throw new BadRequestException("Duration must be 30, 60, 90, or 120 minutes");
+    }
+
+    const slotHour = scheduledAt.getHours();
+    const slotDayOfWeek = scheduledAt.getDay();
+
+    const availability = await this.prisma.availability.findFirst({
+      where: {
+        tutorId: app.tutorId,
+        dayOfWeek: slotDayOfWeek,
+        startHour: { lte: slotHour },
+        endHour: { gt: slotHour },
+      },
+    });
+    if (!availability) {
+      throw new BadRequestException("Selected time is outside tutor's availability");
+    }
+
+    const sessionEnd = new Date(scheduledAt);
+    sessionEnd.setMinutes(sessionEnd.getMinutes() + data.durationMinutes);
+
+    const overlap = await this.prisma.session.findFirst({
+      where: {
+        tutorId: app.tutorId,
+        status: { in: ["PENDING", "CONFIRMED"] },
+        AND: [
+          { scheduledAt: { lt: sessionEnd } },
+          {
+            scheduledAt: {
+              gte: new Date(scheduledAt.getTime() - 120 * 60 * 1000),
+            },
+          },
+        ],
+      },
+      select: { id: true, scheduledAt: true, durationMinutes: true },
+    });
+
+    if (overlap) {
+      const overlapEnd = new Date(overlap.scheduledAt);
+      overlapEnd.setMinutes(overlapEnd.getMinutes() + overlap.durationMinutes);
+      const newStart = scheduledAt;
+      if (newStart < overlapEnd && sessionEnd > overlap.scheduledAt) {
+        throw new BadRequestException("This time slot conflicts with an existing session");
+      }
+    }
 
     const session = await this.prisma.session.create({
       data: {

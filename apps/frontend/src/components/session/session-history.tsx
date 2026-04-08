@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { History, Calendar, Clock } from "lucide-react";
+import { History, Calendar, Clock, Star } from "lucide-react";
+import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { apiGet } from "@/lib/api";
 import type { Session, SessionStatus } from "./session-types";
 
@@ -16,6 +18,7 @@ const STATUS_CONFIG: Record<SessionStatus, { label: string; color: string }> = {
 
 type Props = {
   currentUserId: string;
+  userRole?: "STUDENT" | "TUTOR";
 };
 
 export function SessionHistory({ currentUserId }: Props) {
@@ -89,6 +92,16 @@ export function SessionHistory({ currentUserId }: Props) {
                       </div>
                       {session.notes && (
                         <p className="text-xs text-muted-foreground mt-2 border-l-2 border-white/10 pl-3 italic">{session.notes}</p>
+                      )}
+                      {session.status === "COMPLETED" && session.studentId === currentUserId && (
+                        <div className="mt-3 pt-3 border-t border-white/5">
+                          <Link href={`/tutors/${session.tutor.id}`}>
+                            <Button variant="outline" size="sm" className="gap-1.5 text-xs border-amber-500/20 text-amber-400 hover:bg-amber-500/10">
+                              <Star className="h-3.5 w-3.5" />
+                              Leave a Review
+                            </Button>
+                          </Link>
+                        </div>
                       )}
                     </CardContent>
                   </Card>
