@@ -84,7 +84,7 @@ export class TutorDiscoveryService {
     const regularWhere = { ...where, is_premium: false };
 
     const [total, featuredTutors, regularTutors] = await Promise.all([
-      this.prisma.tutorProfile.count({ where }),
+      this.prisma.tutorProfile.count({ where: regularWhere }),
       this.prisma.tutorProfile.findMany({
         where: featuredWhere,
         include: {

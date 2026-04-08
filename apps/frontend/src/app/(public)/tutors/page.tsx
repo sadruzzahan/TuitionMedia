@@ -448,25 +448,56 @@ function TutorsContent() {
                   </div>
 
                   {/* Budget Range */}
-                  <div>
-                    <label className="text-xs text-muted-foreground mb-1.5 block">Min Rate (৳/hr)</label>
-                    <Input
-                      type="number"
-                      value={minRate}
-                      onChange={(e) => { setMinRate(e.target.value); setPage(1); }}
-                      placeholder="e.g. 200"
-                      className="bg-white/5 border-white/10"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs text-muted-foreground mb-1.5 block">Max Rate (৳/hr)</label>
-                    <Input
-                      type="number"
-                      value={maxRate}
-                      onChange={(e) => { setMaxRate(e.target.value); setPage(1); }}
-                      placeholder="e.g. 1000"
-                      className="bg-white/5 border-white/10"
-                    />
+                  <div className="sm:col-span-2">
+                    <label className="text-xs text-muted-foreground mb-1.5 block">
+                      Hourly Rate (৳/hr)
+                      {(minRate || maxRate) && (
+                        <span className="text-cyan-400 ml-1">
+                          {minRate && maxRate ? `৳${Number(minRate).toLocaleString()} – ৳${Number(maxRate).toLocaleString()}` : minRate ? `From ৳${Number(minRate).toLocaleString()}` : `Up to ৳${Number(maxRate).toLocaleString()}`}
+                        </span>
+                      )}
+                    </label>
+                    <div className="flex flex-wrap gap-1.5 mb-2">
+                      {[
+                        { label: "Any", min: "", max: "" },
+                        { label: "Under ৳300", min: "", max: "300" },
+                        { label: "৳300–600", min: "300", max: "600" },
+                        { label: "৳600–1000", min: "600", max: "1000" },
+                        { label: "৳1000–2000", min: "1000", max: "2000" },
+                        { label: "৳2000+", min: "2000", max: "" },
+                      ].map((r) => (
+                        <button
+                          key={r.label}
+                          type="button"
+                          onClick={() => { setMinRate(r.min); setMaxRate(r.max); setPage(1); }}
+                          className={cn(
+                            "rounded-full border px-3 py-1 text-xs transition-all",
+                            minRate === r.min && maxRate === r.max
+                              ? "border-cyan-500/50 bg-cyan-500/15 text-cyan-400"
+                              : "border-white/10 bg-white/5 text-muted-foreground hover:border-white/20"
+                          )}
+                        >
+                          {r.label}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="flex gap-2">
+                      <Input
+                        type="number"
+                        value={minRate}
+                        onChange={(e) => { setMinRate(e.target.value); setPage(1); }}
+                        placeholder="Min ৳"
+                        className="bg-white/5 border-white/10 text-sm"
+                      />
+                      <span className="flex items-center text-muted-foreground text-xs">to</span>
+                      <Input
+                        type="number"
+                        value={maxRate}
+                        onChange={(e) => { setMaxRate(e.target.value); setPage(1); }}
+                        placeholder="Max ৳"
+                        className="bg-white/5 border-white/10 text-sm"
+                      />
+                    </div>
                   </div>
                 </div>
 

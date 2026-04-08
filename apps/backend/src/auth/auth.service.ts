@@ -168,6 +168,10 @@ export class AuthService {
           areas: data.areas ?? [],
           experience: data.experience ?? 0,
           qualifications: [],
+          is_profile_public: data.is_profile_public ?? true,
+          gender: data.gender,
+          grade_levels: data.grade_levels ?? [],
+          teaching_mode: data.teaching_mode,
           updated_at: new Date(),
         },
       });
