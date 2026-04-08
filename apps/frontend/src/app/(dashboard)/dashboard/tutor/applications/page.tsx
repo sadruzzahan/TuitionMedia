@@ -345,7 +345,7 @@ export default function TutorApplicationsPage() {
                     </div>
                   )}
 
-                  {(app.status === "BOTH_PAID" || (app.status === "ACCEPTED" && app.request.contact_unlocked)) && (
+                  {(app.status === "BOTH_PAID" || app.status === "CONNECTED" || (app.status === "ACCEPTED" && app.request.contact_unlocked)) && (
                     <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/20 p-4 space-y-3">
                       <div className="flex items-center gap-2 text-emerald-400">
                         <CheckCircle className="h-4 w-4" />
