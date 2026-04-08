@@ -363,7 +363,7 @@ export default function TutorApplicationsPage() {
                           </div>
                         )}
                       </div>
-                      {app.status === "BOTH_PAID" && (
+                      {(app.status === "BOTH_PAID" || app.status === "CONNECTED") && (
                         <Button
                           variant="gradient"
                           size="sm"

@@ -349,7 +349,7 @@ export default function RequestDetailPage() {
                         {activeApp.tutor.phone}
                       </div>
                     )}
-                    {activeApp.status === "BOTH_PAID" && (
+                    {(activeApp.status === "BOTH_PAID" || activeApp.status === "CONNECTED") && (
                       <Button
                         variant="gradient"
                         size="sm"

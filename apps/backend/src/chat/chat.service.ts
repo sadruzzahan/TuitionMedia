@@ -9,6 +9,10 @@ import { PrismaService } from "../prisma/prisma.service";
 export class ChatService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private isChatEnabled(status: string, contactUnlocked: boolean): boolean {
+    return status === "BOTH_PAID" || status === "CONNECTED" || contactUnlocked;
+  }
+
   async canAccessChat(applicationId: string, userId: string): Promise<boolean> {
     const app = await this.prisma.application.findUnique({
       where: { id: applicationId },
@@ -18,7 +22,7 @@ export class ChatService {
     const isStudent = app.request.studentId === userId;
     const isTutor = app.tutorId === userId;
     if (!isStudent && !isTutor) return false;
-    return app.status === "BOTH_PAID" || app.request.contact_unlocked;
+    return this.isChatEnabled(app.status, app.request.contact_unlocked);
   }
 
   async createMessage(
@@ -35,7 +39,7 @@ export class ChatService {
     const isStudent = app.request.studentId === senderId;
     const isTutor = app.tutorId === senderId;
     if (!isStudent && !isTutor) throw new ForbiddenException("Not authorized");
-    if (app.status !== "BOTH_PAID" && !app.request.contact_unlocked) {
+    if (!this.isChatEnabled(app.status, app.request.contact_unlocked)) {
       throw new ForbiddenException("Chat not available yet");
     }
 
@@ -59,7 +63,7 @@ export class ChatService {
     const isStudent = app.request.studentId === userId;
     const isTutor = app.tutorId === userId;
     if (!isStudent && !isTutor) throw new ForbiddenException("Not authorized");
-    if (app.status !== "BOTH_PAID" && !app.request.contact_unlocked) {
+    if (!this.isChatEnabled(app.status, app.request.contact_unlocked)) {
       throw new ForbiddenException("Chat not available yet");
     }
 

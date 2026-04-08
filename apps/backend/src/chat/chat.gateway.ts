@@ -127,6 +127,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
     @MessageBody() data: { applicationId: string },
   ) {
     if (!client.userId) return;
+    const canAccess = await this.chatService.canAccessChat(data.applicationId, client.userId);
+    if (!canAccess) {
+      client.emit("error", { message: "Not authorized" });
+      return;
+    }
     await this.chatService.markRead(data.applicationId, client.userId);
   }
 
