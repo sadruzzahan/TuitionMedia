@@ -431,7 +431,6 @@ export class SessionService {
     return this.prisma.session.findMany({
       where: {
         OR: [{ studentId: userId }, { tutorId: userId }],
-        scheduledAt: { gte: new Date() },
         status: { in: ["PENDING", "CONFIRMED"] },
       },
       include: this.sessionInclude(),
@@ -442,10 +441,8 @@ export class SessionService {
   async getHistory(userId: string) {
     return this.prisma.session.findMany({
       where: {
-        AND: [
-          { OR: [{ studentId: userId }, { tutorId: userId }] },
-          { OR: [{ scheduledAt: { lt: new Date() } }, { status: { in: ["COMPLETED", "CANCELLED"] } }] },
-        ],
+        OR: [{ studentId: userId }, { tutorId: userId }],
+        status: { in: ["COMPLETED", "CANCELLED"] },
       },
       include: this.sessionInclude(),
       orderBy: { scheduledAt: "desc" },
