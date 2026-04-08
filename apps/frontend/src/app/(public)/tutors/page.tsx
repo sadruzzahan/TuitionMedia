@@ -202,8 +202,11 @@ function TutorsContent() {
   const searchParams = useSearchParams();
 
   const [subjects, setSubjects] = useState<string[]>(() => {
-    const s = searchParams.get("subjects");
-    return s ? s.split(",").filter(Boolean) : [];
+    const multi = searchParams.get("subjects");
+    if (multi) return multi.split(",").filter(Boolean);
+    const single = searchParams.get("subject");
+    if (single && single !== "all") return [single];
+    return [];
   });
   const [division, setDivision] = useState(searchParams.get("division") ?? "all");
   const [area, setArea] = useState(searchParams.get("area") ?? "all");
