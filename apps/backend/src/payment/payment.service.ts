@@ -2,13 +2,17 @@ import { Injectable, BadRequestException, NotFoundException } from "@nestjs/comm
 import { PrismaService } from "../prisma/prisma.service";
 import { PaymentStatus, PaymentMethod, ApplicationStatus } from "@prisma/client";
 import { randomInt } from "crypto";
+import { NotificationService } from "../notification/notification.service";
 
-const PLATFORM_FEE = 500; // 500 BDT
+const PLATFORM_FEE = 500;
 const OTP_EXPIRY_MINUTES = 5;
 
 @Injectable()
 export class PaymentService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notificationService: NotificationService,
+  ) {}
 
   // Generate 6-digit OTP
   private generateOTP(): string {
@@ -202,6 +206,11 @@ export class PaymentService {
 
     // If both paid (2 payments), unlock contact information and set status to BOTH_PAID
     if (allPayments.length >= 2) {
+      const app = await this.prisma.application.findUnique({
+        where: { id: payment.applicationId },
+        include: { request: { select: { studentId: true, title: true } } },
+      });
+
       await this.prisma.$transaction([
         this.prisma.tuitionRequest.update({
           where: { id: payment.requestId },
@@ -210,8 +219,29 @@ export class PaymentService {
         this.prisma.application.update({
           where: { id: payment.applicationId },
           data: { status: "BOTH_PAID" as ApplicationStatus },
-        })
+        }),
       ]);
+
+      if (app) {
+        const isStudent = app.request.studentId === payment.userId;
+        const otherId = isStudent ? app.tutorId : app.request.studentId;
+
+        await this.notificationService.create({
+          userId: otherId,
+          type: "PAYMENT_VERIFIED",
+          title: "Both parties connected!",
+          message: "Both fees have been paid. Contact information is now unlocked.",
+          data: { applicationId: payment.applicationId, requestId: payment.requestId },
+        });
+
+        await this.notificationService.create({
+          userId: payment.userId,
+          type: "PAYMENT_VERIFIED",
+          title: "Payment verified — you're connected!",
+          message: "Your payment was verified. Contact information is now unlocked.",
+          data: { applicationId: payment.applicationId, requestId: payment.requestId },
+        });
+      }
     }
 
     return {

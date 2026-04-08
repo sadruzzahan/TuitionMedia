@@ -13,6 +13,7 @@ PORT = "3001"
 FRONTEND_URL = "https://27629f43-4b4d-4afc-b75f-7d4b9722b3ce-00-22weasf0obltp.spock.replit.dev"
 NEXT_PUBLIC_API_URL = "/api"
 NODE_ENV = "development"
+NEXT_PUBLIC_SOCKET_URL = "https://a37f1a2e-50a0-43ea-8d96-53bff08da4be-00-1se2sha8ifm1p.picard.replit.dev"
 
 [workflows]
 runButton = "Project"

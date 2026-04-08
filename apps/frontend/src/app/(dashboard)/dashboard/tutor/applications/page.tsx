@@ -14,12 +14,14 @@ import {
   Send,
   UserCheck,
   Unlock,
+  MessageSquare,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { apiGet, apiPost } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import { PaymentMethodSelector } from "@/components/payment/payment-method-selector";
+import { ChatDrawer } from "@/components/chat/chat-drawer";
 
 type Application = {
   id: string;
@@ -119,6 +121,9 @@ export default function TutorApplicationsPage() {
   const [paymentApplicationId, setPaymentApplicationId] = useState<string | null>(null);
   const [currentPaymentId, setCurrentPaymentId] = useState<string | null>(null);
   const [confirmingApp, setConfirmingApp] = useState<string | null>(null);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatApplicationId, setChatApplicationId] = useState<string | null>(null);
+  const [chatRecipientName, setChatRecipientName] = useState("");
 
   const fetchApplications = async () => {
     try {
@@ -227,6 +232,13 @@ export default function TutorApplicationsPage() {
 
   return (
     <div>
+      {chatOpen && chatApplicationId && (
+        <ChatDrawer
+          applicationId={chatApplicationId}
+          recipientName={chatRecipientName}
+          onClose={() => setChatOpen(false)}
+        />
+      )}
       {showPayment && (
         <PaymentMethodSelector
           amount={500}
@@ -334,8 +346,8 @@ export default function TutorApplicationsPage() {
                   )}
 
                   {(app.status === "BOTH_PAID" || (app.status === "ACCEPTED" && app.request.contact_unlocked)) && (
-                    <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/20 p-4">
-                      <div className="flex items-center gap-2 text-emerald-400 mb-3">
+                    <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/20 p-4 space-y-3">
+                      <div className="flex items-center gap-2 text-emerald-400">
                         <CheckCircle className="h-4 w-4" />
                         <span className="text-sm font-medium">Contact Information Unlocked</span>
                       </div>
@@ -351,6 +363,21 @@ export default function TutorApplicationsPage() {
                           </div>
                         )}
                       </div>
+                      {app.status === "BOTH_PAID" && (
+                        <Button
+                          variant="gradient"
+                          size="sm"
+                          className="w-full gap-2"
+                          onClick={() => {
+                            setChatApplicationId(app.id);
+                            setChatRecipientName(app.request.student.name ?? app.request.student.email);
+                            setChatOpen(true);
+                          }}
+                        >
+                          <MessageSquare className="h-4 w-4" />
+                          Message Student
+                        </Button>
+                      )}
                     </div>
                   )}
 

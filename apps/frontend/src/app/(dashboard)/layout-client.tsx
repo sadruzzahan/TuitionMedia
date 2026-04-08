@@ -14,7 +14,6 @@ import {
   Menu,
   X,
   ChevronRight,
-  Bell,
   Home,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -27,6 +26,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuthStore } from "@/store/auth-store";
 import { cn } from "@/lib/utils";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 
 const studentNav = [
   { href: "/dashboard/student", label: "My Requests", icon: BookOpen },
@@ -237,10 +237,7 @@ export default function DashboardLayoutClient({
           <span className="font-bold text-sm">TuitionMedia</span>
         </Link>
         <div className="flex items-center gap-2">
-          {/* Notification bell (placeholder) */}
-          <Button variant="ghost" size="icon" className="h-8 w-8 relative">
-            <Bell className="h-4 w-4" />
-          </Button>
+          <NotificationBell compact />
           <div className="flex h-7 w-7 items-center justify-center rounded-full bg-cyan-500/20 text-xs font-bold text-cyan-400">
             {(user.name ?? user.email).charAt(0).toUpperCase()}
           </div>
@@ -345,11 +342,7 @@ export default function DashboardLayoutClient({
 
           {/* Right side: notification bell + user */}
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" className="h-8 w-8 relative" title="Notifications (coming soon)">
-              <Bell className="h-4 w-4 text-muted-foreground" />
-              {/* Placeholder badge */}
-              <span className="absolute top-1 right-1 h-1.5 w-1.5 rounded-full bg-cyan-400" />
-            </Button>
+            <NotificationBell />
             <div className="flex items-center gap-2">
               <div className="flex h-7 w-7 items-center justify-center rounded-full bg-cyan-500/20 text-xs font-bold text-cyan-400">
                 {(user.name ?? user.email).charAt(0).toUpperCase()}

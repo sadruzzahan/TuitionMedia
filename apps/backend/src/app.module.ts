@@ -8,6 +8,8 @@ import { TuitionRequestModule } from "./tuition-request/tuition-request.module";
 import { ApplicationModule } from "./application/application.module";
 import { PaymentModule } from "./payment/payment.module";
 import { TutorDiscoveryModule } from "./tutor-discovery/tutor-discovery.module";
+import { NotificationModule } from "./notification/notification.module";
+import { ChatModule } from "./chat/chat.module";
 
 @Module({
   imports: [
@@ -18,6 +20,8 @@ import { TutorDiscoveryModule } from "./tutor-discovery/tutor-discovery.module";
     ApplicationModule,
     PaymentModule,
     TutorDiscoveryModule,
+    NotificationModule,
+    ChatModule,
   ],
   controllers: [AppController],
   providers: [AppService],

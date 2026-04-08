@@ -22,7 +22,8 @@ A full-stack tutoring marketplace built for Bangladesh. Students post tuition re
 | `JWT_SECRET` | Secret | JWT signing |
 | `PORT` | Shared env | Backend port (3001) |
 | `FRONTEND_URL` | Shared env | CORS allowlist |
-| `NEXT_PUBLIC_API_URL` | Shared env | Frontend → backend URL |
+| `NEXT_PUBLIC_API_URL` | Shared env | Frontend → backend REST URL (e.g. `/api`) |
+| `NEXT_PUBLIC_SOCKET_URL` | Shared env | Socket.IO backend URL (direct, not proxied) |
 
 ## Running the App
 ```bash
@@ -72,7 +73,17 @@ bash start.sh
   - `GET /tutors/:id` — public profile with reviews; hides contact until connected
   - `is_profile_public` toggle on tutor dashboard profile page
   - `/tutors` and `/tutors/[id]` frontend pages with SEO meta + JSON-LD
-- [ ] Task #3: Real-time Messaging & Notifications
+- [x] Task #3: Real-time Messaging & Notifications — **COMPLETE**
+  - `Message` model added to Prisma schema (applicationId, senderId, content, createdAt, readAt)
+  - `ChatGateway` (Socket.IO) with JWT auth, join_room, send_message, mark_read events
+  - `NotificationModule` with REST endpoints: `GET /notifications`, `GET /notifications/unread-count`, `POST /notifications/mark-all-read`, `POST /notifications/:id/read`
+  - `ChatController`: `GET /messages/:applicationId`
+  - Real-time notifications emitted to users when new application received, accepted, rejected, or payment verified
+  - `NotificationBell` component with live unread count badge, dropdown with icons/timestamps/links
+  - `ChatDrawer` slide-in component with scrollable message list and multi-line input (Enter to send)
+  - "Message" button appears on student request detail page and tutor applications page when `status === BOTH_PAID`
+  - `useSocket` hook manages shared Socket.IO connection with JWT auth
+  - `NEXT_PUBLIC_SOCKET_URL` env var for direct backend WebSocket connection
 - [ ] Task #4: Session Scheduling & Management
 - [ ] Task #5: Reviews, Ratings & Verification
 - [ ] Task #6: Admin Dashboard & Platform Analytics

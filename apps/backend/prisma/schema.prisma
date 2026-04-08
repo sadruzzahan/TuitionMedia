@@ -24,6 +24,7 @@ model User {
   booking_fees_tutor   BookingFee[]     @relation("booking_fees_tutor_idTousers")
   documents_reviewed   Document[]       @relation("documents_reviewed_byTousers")
   documents            Document[]       @relation("documents_user_idTousers")
+  messages             Message[]
   notifications        Notification[]
   otp_codes            OtpCode[]
   payments             Payment[]
@@ -84,10 +85,26 @@ model Application {
   request       TuitionRequest    @relation(fields: [requestId], references: [id], onDelete: Cascade)
   tutor         User              @relation(fields: [tutorId], references: [id], onDelete: Cascade)
   payments      Payment[]
+  messages      Message[]
 
   @@unique([requestId, tutorId])
   @@index([status])
   @@map("applications")
+}
+
+model Message {
+  id            String      @id @default(cuid())
+  applicationId String      @map("application_id")
+  senderId      String      @map("sender_id")
+  content       String
+  createdAt     DateTime    @default(now()) @map("created_at")
+  readAt        DateTime?   @map("read_at")
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  sender        User        @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId])
+  @@index([senderId])
+  @@map("messages")
 }
 
 model Review {

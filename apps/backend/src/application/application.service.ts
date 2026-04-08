@@ -7,16 +7,21 @@ import {
 } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { ApplicationStatus } from "@prisma/client";
+import { NotificationService } from "../notification/notification.service";
 
-const PLATFORM_FEE = 500; // 500 BDT
+const PLATFORM_FEE = 500;
 
 @Injectable()
 export class ApplicationService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notificationService: NotificationService,
+  ) {}
 
   async create(requestId: string, tutorId: string, coverLetter: string) {
     const request = await this.prisma.tuitionRequest.findUnique({
       where: { id: requestId },
+      include: { student: { select: { id: true, name: true, email: true } } },
     });
     if (!request) throw new NotFoundException("Tuition request not found");
     if (request.status !== "OPEN") {
@@ -28,13 +33,25 @@ export class ApplicationService {
     });
     if (existing) throw new ConflictException("You have already applied");
 
-    return this.prisma.application.create({
+    const tutor = await this.prisma.user.findUnique({ where: { id: tutorId }, select: { name: true, email: true } });
+
+    const application = await this.prisma.application.create({
       data: { requestId, tutorId, coverLetter },
       include: {
         request: { select: { title: true, subjects: true } },
         tutor: { select: { email: true } },
       },
     });
+
+    await this.notificationService.create({
+      userId: request.studentId,
+      type: "NEW_APPLICATION",
+      title: "New application received",
+      message: `${tutor?.name ?? tutor?.email ?? "A tutor"} applied to your request "${request.title}"`,
+      data: { applicationId: application.id, requestId },
+    });
+
+    return application;
   }
 
   async findByRequest(requestId: string, studentUserId: string) {
@@ -66,7 +83,6 @@ export class ApplicationService {
     });
   }
 
-  // Student accepts - returns payment requirement
   async acceptWithPaymentRequirement(applicationId: string, studentUserId: string) {
     const app = await this.prisma.application.findUnique({
       where: { id: applicationId },
@@ -80,7 +96,6 @@ export class ApplicationService {
       throw new ConflictException("Application already processed");
     }
 
-    // Return payment requirement info
     return {
       requiresPayment: true,
       amount: PLATFORM_FEE,
@@ -90,7 +105,6 @@ export class ApplicationService {
     };
   }
 
-  // Confirm acceptance after student payment
   async confirmAcceptance(applicationId: string, studentUserId: string) {
     const app = await this.prisma.application.findUnique({
       where: { id: applicationId },
@@ -104,31 +118,21 @@ export class ApplicationService {
       throw new ConflictException("Application already processed");
     }
 
-    // Verify student has paid
     const studentPayment = await this.prisma.payment.findFirst({
-      where: {
-        applicationId,
-        userId: studentUserId,
-        status: "VERIFIED",
-      },
+      where: { applicationId, userId: studentUserId, status: "VERIFIED" },
     });
 
     if (!studentPayment) {
       throw new BadRequestException("Payment not verified. Please complete payment first.");
     }
 
-    // Accept the application (STUDENT_PAID)
     const [updated] = await this.prisma.$transaction([
       this.prisma.application.update({
         where: { id: applicationId },
         data: { status: "STUDENT_PAID" as ApplicationStatus },
       }),
       this.prisma.application.updateMany({
-        where: {
-          requestId: app.requestId,
-          id: { not: applicationId },
-          status: "PENDING",
-        },
+        where: { requestId: app.requestId, id: { not: applicationId }, status: "PENDING" },
         data: { status: "REJECTED" as ApplicationStatus },
       }),
       this.prisma.tuitionRequest.update({
@@ -136,10 +140,23 @@ export class ApplicationService {
         data: { status: "CLOSED" },
       }),
     ]);
+
+    const student = await this.prisma.user.findUnique({
+      where: { id: studentUserId },
+      select: { name: true, email: true },
+    });
+
+    await this.notificationService.create({
+      userId: app.tutorId,
+      type: "APPLICATION_ACCEPTED",
+      title: "Your application was accepted!",
+      message: `${student?.name ?? student?.email ?? "A student"} accepted your application. Please pay ৳500 to connect.`,
+      data: { applicationId, requestId: app.requestId },
+    });
+
     return updated;
   }
 
-  // Tutor confirms after student paid - returns payment requirement
   async tutorConfirmWithPaymentRequirement(applicationId: string, tutorUserId: string) {
     const app = await this.prisma.application.findUnique({
       where: { id: applicationId },
@@ -153,29 +170,19 @@ export class ApplicationService {
       throw new ConflictException("Application must be accepted by student first");
     }
 
-    // Check if student has paid
     const studentPayment = await this.prisma.payment.findFirst({
-      where: {
-        applicationId,
-        status: "VERIFIED",
-      },
+      where: { applicationId, status: "VERIFIED" },
     });
 
     if (!studentPayment) {
       throw new BadRequestException("Student has not completed payment yet");
     }
 
-    // Check if tutor already paid
     const tutorPayment = await this.prisma.payment.findFirst({
-      where: {
-        applicationId,
-        userId: tutorUserId,
-        status: "VERIFIED",
-      },
+      where: { applicationId, userId: tutorUserId, status: "VERIFIED" },
     });
 
     if (tutorPayment) {
-      // Already paid, confirm the request
       await this.prisma.tuitionRequest.update({
         where: { id: app.requestId },
         data: { status: "IN_PROGRESS", contact_unlocked: true },
@@ -192,7 +199,6 @@ export class ApplicationService {
     };
   }
 
-  // Get payment status for an application
   async getPaymentStatus(applicationId: string, userId: string) {
     const app = await this.prisma.application.findUnique({
       where: { id: applicationId },
@@ -200,7 +206,6 @@ export class ApplicationService {
     });
     if (!app) throw new NotFoundException("Application not found");
 
-    // Check authorization
     const isStudent = app.request.studentId === userId;
     const isTutor = app.tutorId === userId;
     if (!isStudent && !isTutor) {
@@ -208,17 +213,11 @@ export class ApplicationService {
     }
 
     const payments = await this.prisma.payment.findMany({
-      where: {
-        applicationId,
-        status: "VERIFIED",
-      },
+      where: { applicationId, status: "VERIFIED" },
     });
 
     const userPayment = await this.prisma.payment.findFirst({
-      where: {
-        applicationId,
-        userId,
-      },
+      where: { applicationId, userId },
       orderBy: { createdAt: "desc" },
     });
 
@@ -247,9 +246,20 @@ export class ApplicationService {
     if (app.request.studentId !== studentUserId) {
       throw new ForbiddenException("Not authorized");
     }
-    return this.prisma.application.update({
+
+    const updated = await this.prisma.application.update({
       where: { id: applicationId },
       data: { status: "REJECTED" as ApplicationStatus },
     });
+
+    await this.notificationService.create({
+      userId: app.tutorId,
+      type: "APPLICATION_REJECTED",
+      title: "Application not selected",
+      message: "Your application was not selected for this request.",
+      data: { applicationId, requestId: app.requestId },
+    });
+
+    return updated;
   }
 }

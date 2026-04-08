@@ -16,12 +16,14 @@ import {
   Users,
   Clock,
   ArrowLeft,
+  MessageSquare,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiGet, apiPost, apiDelete } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import { PaymentMethodSelector } from "@/components/payment/payment-method-selector";
+import { ChatDrawer } from "@/components/chat/chat-drawer";
 
 type Application = {
   id: string;
@@ -74,6 +76,9 @@ export default function RequestDetailPage() {
   const [paymentAmount, setPaymentAmount] = useState(500);
   const [currentPaymentId, setCurrentPaymentId] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatApplicationId, setChatApplicationId] = useState<string | null>(null);
+  const [chatRecipientName, setChatRecipientName] = useState("");
 
   function refresh() {
     return apiGet<TuitionRequest>(`/tuition-requests/${requestId}`).then(setRequest);
@@ -228,6 +233,13 @@ export default function RequestDetailPage() {
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+      {chatOpen && chatApplicationId && (
+        <ChatDrawer
+          applicationId={chatApplicationId}
+          recipientName={chatRecipientName}
+          onClose={() => setChatOpen(false)}
+        />
+      )}
       {showPayment && (
         <PaymentMethodSelector
           amount={paymentAmount}
@@ -336,6 +348,21 @@ export default function RequestDetailPage() {
                         <Phone className="h-3.5 w-3.5 text-muted-foreground" />
                         {activeApp.tutor.phone}
                       </div>
+                    )}
+                    {activeApp.status === "BOTH_PAID" && (
+                      <Button
+                        variant="gradient"
+                        size="sm"
+                        className="w-full gap-2 mt-1"
+                        onClick={() => {
+                          setChatApplicationId(activeApp.id);
+                          setChatRecipientName(activeApp.tutor.name ?? activeApp.tutor.email);
+                          setChatOpen(true);
+                        }}
+                      >
+                        <MessageSquare className="h-4 w-4" />
+                        Message Tutor
+                      </Button>
                     )}
                   </div>
                 ) : (

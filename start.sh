@@ -20,11 +20,9 @@ echo "==> Generating Prisma client..."
 cd apps/backend
 pnpm exec prisma generate
 
-# Build backend if needed
-if [ ! -d "dist" ]; then
-  echo "==> Building backend..."
-  pnpm run build
-fi
+# Always rebuild backend to ensure new code is compiled
+echo "==> Building backend..."
+pnpm run build
 
 # Run database migrations
 echo "==> Running database migrations..."
