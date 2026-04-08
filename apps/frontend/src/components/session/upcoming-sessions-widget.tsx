@@ -39,7 +39,11 @@ export function UpcomingSessionsWidget({ currentUserId, role, onViewAll }: Props
     setActionLoading(sessionId + action);
     try {
       const updated = await apiPost<Session>(`/sessions/${sessionId}/${action}`, {});
-      setSessions((prev) => prev.map((s) => (s.id === sessionId ? updated : s)).filter((s) => s.status !== "CANCELLED"));
+      setSessions((prev) =>
+        prev
+          .map((s) => (s.id === sessionId ? updated : s))
+          .filter((s) => s.status !== "CANCELLED" && s.status !== "COMPLETED"),
+      );
       toast({ title: action === "confirm" ? "Session confirmed!" : action === "cancel" ? "Session cancelled" : "Marked complete!", variant: action === "cancel" ? "default" : "success" });
     } catch (err) {
       toast({ title: "Action failed", description: err instanceof Error ? err.message : "", variant: "destructive" });

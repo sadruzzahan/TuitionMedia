@@ -78,7 +78,9 @@ export default function TutorSessionsPage() {
                     currentUserId={user.id}
                     onUpdate={(updated) =>
                       setSessions((prev) =>
-                        prev.map((x) => (x.id === updated.id ? updated : x)).filter((x) => x.status !== "CANCELLED")
+                        prev
+                          .map((x) => (x.id === updated.id ? updated : x))
+                          .filter((x) => x.status !== "CANCELLED" && x.status !== "COMPLETED"),
                       )
                     }
                   />
