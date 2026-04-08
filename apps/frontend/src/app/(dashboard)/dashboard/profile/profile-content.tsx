@@ -194,6 +194,7 @@ function VerificationTab({ isVerified }: { isVerified: boolean }) {
   const [docType, setDocType] = useState(DOC_TYPES[0].value);
   const [fileBase64, setFileBase64] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   async function loadDocuments() {
@@ -211,21 +212,16 @@ function VerificationTab({ isVerified }: { isVerified: boolean }) {
     loadDocuments();
   }, []);
 
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  function processFile(file: File) {
     if (file.size > 5 * 1024 * 1024) {
       toast({ title: "File too large", description: "Maximum file size is 5MB", variant: "destructive" });
       return;
     }
-
     const allowed = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
     if (!allowed.includes(file.type)) {
       toast({ title: "Invalid file type", description: "Please upload a JPG, PNG, WebP, or PDF", variant: "destructive" });
       return;
     }
-
     setFileName(file.name);
     const reader = new FileReader();
     reader.onload = (ev) => {
@@ -233,6 +229,33 @@ function VerificationTab({ isVerified }: { isVerified: boolean }) {
       setFileBase64(result);
     };
     reader.readAsDataURL(file);
+  }
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    processFile(file);
+  }
+
+  function handleDragOver(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  }
+
+  function handleDragLeave(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  }
+
+  function handleDrop(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (!file) return;
+    processFile(file);
   }
 
   async function handleUpload() {
@@ -319,22 +342,27 @@ function VerificationTab({ isVerified }: { isVerified: boolean }) {
             <div
               className={cn(
                 "flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed p-6 transition-colors cursor-pointer",
-                fileName
-                  ? "border-cyan-500/40 bg-cyan-500/5"
-                  : "border-white/10 bg-white/5 hover:border-white/20"
+                isDragging
+                  ? "border-cyan-400/70 bg-cyan-500/10 scale-[1.01]"
+                  : fileName
+                    ? "border-cyan-500/40 bg-cyan-500/5"
+                    : "border-white/10 bg-white/5 hover:border-white/20"
               )}
               onClick={() => fileInputRef.current?.click()}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
             >
               {fileName ? (
                 <>
                   <FileText className="h-8 w-8 text-cyan-400" />
                   <p className="text-sm font-medium text-cyan-400">{fileName}</p>
-                  <p className="text-xs text-muted-foreground">Click to change file</p>
+                  <p className="text-xs text-muted-foreground">Click or drag to change file</p>
                 </>
               ) : (
                 <>
                   <Upload className="h-8 w-8 text-muted-foreground/50" />
-                  <p className="text-sm text-muted-foreground">Click to upload document</p>
+                  <p className="text-sm text-muted-foreground">Click or drag and drop to upload</p>
                   <p className="text-xs text-muted-foreground/60">JPG, PNG, WebP, PDF</p>
                 </>
               )}

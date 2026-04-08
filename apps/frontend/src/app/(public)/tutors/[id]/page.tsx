@@ -58,6 +58,26 @@ type TutorProfileData = {
   }[];
 };
 
+type ReviewsApiResponse = {
+  reviews: {
+    id: string;
+    rating: number;
+    comment: string | null;
+    studentName: string;
+    createdAt: string;
+    ratingCommunication: number | null;
+    ratingKnowledge: number | null;
+    ratingPunctuality: number | null;
+    ratingPatience: number | null;
+    ratingValue: number | null;
+  }[];
+  total: number;
+  page: number;
+  totalPages: number;
+};
+
+const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3001";
+
 async function getTutorProfile(id: string): Promise<TutorProfileData | null> {
   try {
     const cookieStore = await cookies();
@@ -65,12 +85,24 @@ async function getTutorProfile(id: string): Promise<TutorProfileData | null> {
     const headers: Record<string, string> = {};
     if (token) headers["Authorization"] = `Bearer ${token}`;
 
-    const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3001"}/tutors/${id}`, {
+    const res = await fetch(`${BACKEND}/tutors/${id}`, {
       headers,
       next: { revalidate: 0 },
     });
     if (!res.ok) return null;
     return res.json() as Promise<TutorProfileData>;
+  } catch {
+    return null;
+  }
+}
+
+async function getTutorReviews(tutorId: string, page = 1): Promise<ReviewsApiResponse | null> {
+  try {
+    const res = await fetch(`${BACKEND}/reviews/tutor/${tutorId}?page=${page}&limit=10`, {
+      next: { revalidate: 0 },
+    });
+    if (!res.ok) return null;
+    return res.json() as Promise<ReviewsApiResponse>;
   } catch {
     return null;
   }
@@ -120,9 +152,15 @@ function getInitials(name: string | null) {
   return name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
 }
 
-export default async function TutorProfilePage({ params }: { params: Promise<{ id: string }> }) {
+export default async function TutorProfilePage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ page?: string }> }) {
   const { id } = await params;
-  const tutor = await getTutorProfile(id);
+  const sp = await searchParams;
+  const reviewPage = Math.max(1, parseInt(sp.page ?? "1", 10) || 1);
+
+  const [tutor, reviewsData] = await Promise.all([
+    getTutorProfile(id),
+    getTutorReviews(id, reviewPage),
+  ]);
   if (!tutor) notFound();
 
   const memberYear = new Date(tutor.memberSince).getFullYear();
@@ -338,18 +376,18 @@ export default async function TutorProfilePage({ params }: { params: Promise<{ i
               )}
 
               {/* Reviews */}
-              {tutor.reviews.length > 0 && (
+              {reviewsData && reviewsData.reviews.length > 0 && (
                 <Card className="glass-card">
                   <CardHeader>
                     <CardTitle className="flex items-center justify-between text-base">
                       <span>Student Reviews</span>
                       <span className="text-sm font-normal text-muted-foreground">
-                        {tutor.totalReviews} total
+                        {reviewsData.total} total
                       </span>
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    {tutor.reviews.map((review) => (
+                    {reviewsData.reviews.map((review) => (
                       <div key={review.id} className="border-b border-white/10 pb-4 last:border-0 last:pb-0">
                         <div className="flex items-start justify-between gap-2 mb-1.5">
                           <div className="flex items-center gap-2">
@@ -370,6 +408,30 @@ export default async function TutorProfilePage({ params }: { params: Promise<{ i
                         )}
                       </div>
                     ))}
+
+                    {reviewsData.totalPages > 1 && (
+                      <div className="flex items-center justify-center gap-2 pt-2">
+                        {reviewPage > 1 && (
+                          <Link
+                            href={`/tutors/${id}?page=${reviewPage - 1}`}
+                            className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-muted-foreground hover:border-white/20 hover:text-foreground transition-colors"
+                          >
+                            Previous
+                          </Link>
+                        )}
+                        <span className="text-xs text-muted-foreground">
+                          Page {reviewPage} of {reviewsData.totalPages}
+                        </span>
+                        {reviewPage < reviewsData.totalPages && (
+                          <Link
+                            href={`/tutors/${id}?page=${reviewPage + 1}`}
+                            className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-muted-foreground hover:border-white/20 hover:text-foreground transition-colors"
+                          >
+                            Next
+                          </Link>
+                        )}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               )}

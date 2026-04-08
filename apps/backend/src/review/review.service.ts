@@ -50,14 +50,16 @@ export class ReviewService {
     const studentId = session.studentId;
     const tuitionRequestId = session.application.request.id;
 
-    if (isStudent) {
-      const existing = await this.prisma.review.findFirst({
-        where: { tuition_request_id: tuitionRequestId, studentId: reviewerId },
-      });
-      if (existing) throw new BadRequestException("You have already reviewed this session");
+    const reviewerIdForUnique = reviewerId;
+    const existing = await this.prisma.review.findFirst({
+      where: { session_id: dto.sessionId, studentId: reviewerIdForUnique },
+    });
+    if (existing) throw new BadRequestException("You have already reviewed this session");
 
+    if (isStudent) {
       const review = await this.prisma.review.create({
         data: {
+          session_id: dto.sessionId,
           tuition_request_id: tuitionRequestId,
           studentId: studentId,
           tutorId: tutorId,
@@ -83,13 +85,9 @@ export class ReviewService {
 
       return review;
     } else {
-      const existing = await this.prisma.review.findFirst({
-        where: { tuition_request_id: tuitionRequestId, studentId: tutorId },
-      });
-      if (existing) throw new BadRequestException("You have already reviewed this session");
-
       const review = await this.prisma.review.create({
         data: {
+          session_id: dto.sessionId,
           tuition_request_id: tuitionRequestId,
           studentId: tutorId,
           tutorId: studentId,
@@ -160,7 +158,7 @@ export class ReviewService {
         ratingPunctuality: r.rating_punctuality,
         ratingPatience: r.rating_patience,
         ratingValue: r.rating_value,
-        studentName: r.student.name ?? "Student",
+        studentName: r.student.name ? r.student.name.split(" ")[0] : "Student",
         createdAt: r.createdAt,
       })),
       total,
@@ -172,11 +170,6 @@ export class ReviewService {
   async checkCanReview(reviewerId: string, sessionId: string) {
     const session = await this.prisma.session.findUnique({
       where: { id: sessionId },
-      include: {
-        application: {
-          include: { request: { select: { id: true } } },
-        },
-      },
     });
 
     if (!session) return { canReview: false, reason: "Session not found" };
@@ -186,11 +179,8 @@ export class ReviewService {
     const isTutor = session.tutorId === reviewerId;
     if (!isStudent && !isTutor) return { canReview: false, reason: "Not part of this session" };
 
-    const tuitionRequestId = session.application.request.id;
-    const lookupStudentId = isStudent ? reviewerId : session.tutorId;
-
     const existing = await this.prisma.review.findFirst({
-      where: { tuition_request_id: tuitionRequestId, studentId: lookupStudentId },
+      where: { session_id: sessionId, studentId: reviewerId },
     });
 
     return {

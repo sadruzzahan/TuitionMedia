@@ -123,6 +123,7 @@ model Session {
   application     Application   @relation(fields: [applicationId], references: [id], onDelete: Cascade)
   student         User          @relation("sessions_as_student", fields: [studentId], references: [id], onDelete: Cascade)
   tutor           User          @relation("sessions_as_tutor", fields: [tutorId], references: [id], onDelete: Cascade)
+  reviews         Review[]
 
   @@index([studentId])
   @@index([tutorId])
@@ -149,6 +150,7 @@ model Message {
 model Review {
   id                 String         @id @default(cuid())
   tuition_request_id String
+  session_id         String?        @map("session_id")
   studentId          String         @map("student_id")
   tutorId            String         @map("tutor_id")
   rating             Int
@@ -163,8 +165,9 @@ model Review {
   student            User           @relation("reviews_student_idTousers", fields: [studentId], references: [id], onDelete: Cascade)
   tuition_request    TuitionRequest @relation(fields: [tuition_request_id], references: [id], onDelete: Cascade)
   tutor              User           @relation("TutorReviews", fields: [tutorId], references: [id], onDelete: Cascade)
+  session            Session?       @relation(fields: [session_id], references: [id])
 
-  @@unique([tuition_request_id, studentId])
+  @@unique([session_id, studentId])
   @@index([tutorId])
   @@map("reviews")
 }
