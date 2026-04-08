@@ -167,7 +167,7 @@ model Review {
   tutor              User           @relation("TutorReviews", fields: [tutorId], references: [id], onDelete: Cascade)
   session            Session?       @relation(fields: [session_id], references: [id])
 
-  @@unique([session_id, studentId])
+  @@unique([tuition_request_id, studentId])
   @@index([tutorId])
   @@map("reviews")
 }

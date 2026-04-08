@@ -17,19 +17,12 @@ type Props = {
   onSubmitted?: () => void;
 };
 
-const STUDENT_DIMENSIONS = [
+const REVIEW_DIMENSIONS = [
   { key: "ratingCommunication", label: "Communication" },
-  { key: "ratingKnowledge", label: "Knowledge" },
+  { key: "ratingKnowledge", label: "Subject Knowledge" },
   { key: "ratingPunctuality", label: "Punctuality" },
   { key: "ratingPatience", label: "Patience" },
   { key: "ratingValue", label: "Value for Money" },
-] as const;
-
-const TUTOR_DIMENSIONS = [
-  { key: "ratingCommunication", label: "Communication" },
-  { key: "ratingPunctuality", label: "Punctuality" },
-  { key: "ratingPatience", label: "Engagement" },
-  { key: "ratingValue", label: "Preparedness" },
 ] as const;
 
 function StarPicker({
@@ -85,7 +78,7 @@ export function ReviewModal({ sessionId, revieweeName, role, onClose, onSubmitte
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
-  const dimensionList = role === "STUDENT" ? STUDENT_DIMENSIONS : TUTOR_DIMENSIONS;
+  const dimensionList = REVIEW_DIMENSIONS;
 
   function setDimension(key: string, value: number) {
     setDimensions((prev) => ({ ...prev, [key]: value }));

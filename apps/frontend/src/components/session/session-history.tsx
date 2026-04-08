@@ -27,22 +27,62 @@ type ReviewTarget = {
   role: "STUDENT" | "TUTOR";
 };
 
+type CanReviewResult = {
+  canReview: boolean;
+  alreadyReviewed?: boolean;
+};
+
 export function SessionHistory({ currentUserId, userRole }: Props) {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
   const [reviewTarget, setReviewTarget] = useState<ReviewTarget | null>(null);
-  const [reviewedSessionIds, setReviewedSessionIds] = useState<Set<string>>(new Set());
+  const [reviewEligibility, setReviewEligibility] = useState<Record<string, CanReviewResult>>({});
+  const [eligibilityLoading, setEligibilityLoading] = useState(false);
+
+  async function loadSessionsAndEligibility() {
+    try {
+      const data = await apiGet<Session[]>("/sessions/history");
+      setSessions(data);
+
+      const completedSessions = data.filter((s) => s.status === "COMPLETED");
+      if (completedSessions.length > 0) {
+        setEligibilityLoading(true);
+        const results = await Promise.allSettled(
+          completedSessions.map(async (s) => {
+            try {
+              const result = await apiGet<CanReviewResult>(`/reviews/can-review/${s.id}`);
+              return { sessionId: s.id, result };
+            } catch {
+              return { sessionId: s.id, result: { canReview: false } };
+            }
+          })
+        );
+        const eligibilityMap: Record<string, CanReviewResult> = {};
+        for (const r of results) {
+          if (r.status === "fulfilled") {
+            eligibilityMap[r.value.sessionId] = r.value.result;
+          }
+        }
+        setReviewEligibility(eligibilityMap);
+        setEligibilityLoading(false);
+      }
+    } catch {
+      setSessions([]);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   useEffect(() => {
-    apiGet<Session[]>("/sessions/history")
-      .then(setSessions)
-      .catch(() => setSessions([]))
-      .finally(() => setLoading(false));
+    loadSessionsAndEligibility();
   }, []);
 
   function handleReviewSubmitted() {
     if (reviewTarget) {
-      setReviewedSessionIds((prev) => new Set([...prev, reviewTarget.sessionId]));
+      setReviewEligibility((prev) => ({
+        ...prev,
+        [reviewTarget.sessionId]: { canReview: false, alreadyReviewed: true },
+      }));
     }
     setReviewTarget(null);
   }
@@ -88,9 +128,11 @@ export function SessionHistory({ currentUserId, userRole }: Props) {
                   : (session.tutor.name ?? session.tutor.email);
                 const scheduled = new Date(session.scheduledAt);
                 const cfg = STATUS_CONFIG[session.status];
-                const alreadyReviewed = reviewedSessionIds.has(session.id);
                 const isCompleted = session.status === "COMPLETED";
                 const effectiveRole = userRole ?? (isTutor ? "TUTOR" : "STUDENT");
+                const eligibility = reviewEligibility[session.id];
+                const canReview = isCompleted && !eligibilityLoading && eligibility?.canReview === true;
+                const alreadyReviewed = isCompleted && eligibility?.alreadyReviewed === true;
 
                 return (
                   <motion.div
@@ -138,33 +180,34 @@ export function SessionHistory({ currentUserId, userRole }: Props) {
                             {session.notes}
                           </p>
                         )}
-                        {isCompleted && !alreadyReviewed && (
+                        {isCompleted && (
                           <div className="mt-3 pt-3 border-t border-white/5">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="gap-1.5 text-xs border-amber-500/20 text-amber-400 hover:bg-amber-500/10"
-                              onClick={() =>
-                                setReviewTarget({
-                                  sessionId: session.id,
-                                  revieweeName: isTutor
-                                    ? (session.student.name ?? "Student")
-                                    : (session.tutor.name ?? "Tutor"),
-                                  role: effectiveRole,
-                                })
-                              }
-                            >
-                              <Star className="h-3.5 w-3.5" />
-                              {isTutor ? "Rate this Student" : "Leave a Review"}
-                            </Button>
-                          </div>
-                        )}
-                        {isCompleted && alreadyReviewed && (
-                          <div className="mt-3 pt-3 border-t border-white/5">
-                            <p className="text-xs text-emerald-400 flex items-center gap-1">
-                              <Star className="h-3 w-3 fill-emerald-400" />
-                              Review submitted
-                            </p>
+                            {canReview ? (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="gap-1.5 text-xs border-amber-500/20 text-amber-400 hover:bg-amber-500/10"
+                                onClick={() =>
+                                  setReviewTarget({
+                                    sessionId: session.id,
+                                    revieweeName: isTutor
+                                      ? (session.student.name ?? "Student")
+                                      : (session.tutor.name ?? "Tutor"),
+                                    role: effectiveRole,
+                                  })
+                                }
+                              >
+                                <Star className="h-3.5 w-3.5" />
+                                {isTutor ? "Rate this Student" : "Leave a Review"}
+                              </Button>
+                            ) : alreadyReviewed ? (
+                              <p className="text-xs text-emerald-400 flex items-center gap-1">
+                                <Star className="h-3 w-3 fill-emerald-400" />
+                                Review submitted
+                              </p>
+                            ) : eligibilityLoading ? (
+                              <p className="text-xs text-muted-foreground">Checking review status...</p>
+                            ) : null}
                           </div>
                         )}
                       </CardContent>
