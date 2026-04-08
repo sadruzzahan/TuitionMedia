@@ -9,8 +9,8 @@ export class ReviewService {
     private readonly notificationService: NotificationService,
   ) {}
 
-  async createReview(studentId: string, dto: {
-    tuitionRequestId: string;
+  async createReview(reviewerId: string, dto: {
+    sessionId: string;
     rating: number;
     comment?: string;
     ratingCommunication?: number;
@@ -23,80 +23,102 @@ export class ReviewService {
       throw new BadRequestException("Rating must be between 1 and 5");
     }
 
-    const request = await this.prisma.tuitionRequest.findUnique({
-      where: { id: dto.tuitionRequestId },
-    });
-
-    if (!request) throw new NotFoundException("Tuition request not found");
-    if (request.studentId !== studentId) throw new ForbiddenException("Not your request");
-
-    const completedSession = await this.prisma.session.findFirst({
-      where: { studentId, status: "COMPLETED", applicationId: { in: await this.getRequestApplicationIds(dto.tuitionRequestId) } },
-    });
-    if (!completedSession) {
-      throw new BadRequestException("You must complete a session before leaving a review");
-    }
-
-    const connectedApp = await this.prisma.application.findFirst({
-      where: {
-        requestId: dto.tuitionRequestId,
-        status: { in: ["BOTH_PAID", "CONNECTED", "ACCEPTED"] },
-      },
-      include: { tutor: { select: { id: true, name: true } } },
-    });
-    if (!connectedApp) {
-      throw new BadRequestException("No connected tutor found for this request");
-    }
-
-    const existing = await this.prisma.review.findFirst({
-      where: { tuition_request_id: dto.tuitionRequestId, studentId },
-    });
-    if (existing) throw new BadRequestException("You have already reviewed this tutor for this request");
-
-    const tutorId = connectedApp.tutor.id;
-
-    const review = await this.prisma.review.create({
-      data: {
-        tuition_request_id: dto.tuitionRequestId,
-        studentId,
-        tutorId,
-        rating: dto.rating,
-        comment: dto.comment,
-        rating_communication: dto.ratingCommunication,
-        rating_knowledge: dto.ratingKnowledge,
-        rating_punctuality: dto.ratingPunctuality,
-        rating_patience: dto.ratingPatience,
-        rating_value: dto.ratingValue,
+    const session = await this.prisma.session.findUnique({
+      where: { id: dto.sessionId },
+      include: {
+        application: {
+          include: {
+            request: { select: { id: true, studentId: true } },
+          },
+        },
       },
     });
 
-    await this.updateTutorRating(tutorId);
+    if (!session) throw new NotFoundException("Session not found");
+    if (session.status !== "COMPLETED") {
+      throw new BadRequestException("Can only review after a session is completed");
+    }
 
-    await this.notificationService.create({
-      userId: tutorId,
-      type: "REVIEW_SUBMITTED",
-      title: "New Review Received",
-      message: `A student left you a ${dto.rating}-star review`,
-      data: { reviewId: review.id, rating: dto.rating },
-    });
+    const isStudent = session.studentId === reviewerId;
+    const isTutor = session.tutorId === reviewerId;
 
-    return review;
-  }
+    if (!isStudent && !isTutor) {
+      throw new ForbiddenException("You are not part of this session");
+    }
 
-  private async getRequestApplicationIds(requestId: string): Promise<string[]> {
-    const apps = await this.prisma.application.findMany({
-      where: { requestId },
-      select: { id: true },
-    });
-    return apps.map((a) => a.id);
+    const tutorId = session.tutorId;
+    const studentId = session.studentId;
+    const tuitionRequestId = session.application.request.id;
+
+    if (isStudent) {
+      const existing = await this.prisma.review.findFirst({
+        where: { tuition_request_id: tuitionRequestId, studentId: reviewerId },
+      });
+      if (existing) throw new BadRequestException("You have already reviewed this session");
+
+      const review = await this.prisma.review.create({
+        data: {
+          tuition_request_id: tuitionRequestId,
+          studentId: studentId,
+          tutorId: tutorId,
+          rating: dto.rating,
+          comment: dto.comment,
+          rating_communication: dto.ratingCommunication,
+          rating_knowledge: dto.ratingKnowledge,
+          rating_punctuality: dto.ratingPunctuality,
+          rating_patience: dto.ratingPatience,
+          rating_value: dto.ratingValue,
+        },
+      });
+
+      await this.updateTutorRating(tutorId);
+
+      await this.notificationService.create({
+        userId: tutorId,
+        type: "REVIEW_SUBMITTED",
+        title: "New Review Received",
+        message: `A student rated you ${dto.rating} star${dto.rating !== 1 ? "s" : ""}`,
+        data: { reviewId: review.id, sessionId: dto.sessionId, rating: dto.rating },
+      });
+
+      return review;
+    } else {
+      const existing = await this.prisma.review.findFirst({
+        where: { tuition_request_id: tuitionRequestId, studentId: tutorId },
+      });
+      if (existing) throw new BadRequestException("You have already reviewed this session");
+
+      const review = await this.prisma.review.create({
+        data: {
+          tuition_request_id: tuitionRequestId,
+          studentId: tutorId,
+          tutorId: studentId,
+          rating: dto.rating,
+          comment: dto.comment,
+          rating_communication: dto.ratingCommunication,
+          rating_knowledge: dto.ratingKnowledge,
+          rating_punctuality: dto.ratingPunctuality,
+          rating_patience: dto.ratingPatience,
+          rating_value: dto.ratingValue,
+        },
+      });
+
+      await this.notificationService.create({
+        userId: studentId,
+        type: "REVIEW_SUBMITTED",
+        title: "Your tutor reviewed you",
+        message: `Your tutor rated the session ${dto.rating} star${dto.rating !== 1 ? "s" : ""}`,
+        data: { reviewId: review.id, sessionId: dto.sessionId, rating: dto.rating },
+      });
+
+      return review;
+    }
   }
 
   private async updateTutorRating(tutorId: string) {
     const reviews = await this.prisma.review.findMany({
       where: { tutorId },
-      select: {
-        rating: true,
-      },
+      select: { rating: true },
     });
 
     const total = reviews.length;
@@ -147,24 +169,32 @@ export class ReviewService {
     };
   }
 
-  async checkCanReview(studentId: string, tuitionRequestId: string) {
-    const request = await this.prisma.tuitionRequest.findUnique({
-      where: { id: tuitionRequestId },
+  async checkCanReview(reviewerId: string, sessionId: string) {
+    const session = await this.prisma.session.findUnique({
+      where: { id: sessionId },
+      include: {
+        application: {
+          include: { request: { select: { id: true } } },
+        },
+      },
     });
 
-    if (!request || request.studentId !== studentId) return { canReview: false };
+    if (!session) return { canReview: false, reason: "Session not found" };
+    if (session.status !== "COMPLETED") return { canReview: false, reason: "Session not completed" };
 
-    const appIds = await this.getRequestApplicationIds(tuitionRequestId);
-    const completedSession = await this.prisma.session.findFirst({
-      where: { studentId, status: "COMPLETED", applicationId: { in: appIds } },
-    });
+    const isStudent = session.studentId === reviewerId;
+    const isTutor = session.tutorId === reviewerId;
+    if (!isStudent && !isTutor) return { canReview: false, reason: "Not part of this session" };
+
+    const tuitionRequestId = session.application.request.id;
+    const lookupStudentId = isStudent ? reviewerId : session.tutorId;
 
     const existing = await this.prisma.review.findFirst({
-      where: { tuition_request_id: tuitionRequestId, studentId },
+      where: { tuition_request_id: tuitionRequestId, studentId: lookupStudentId },
     });
 
     return {
-      canReview: !!completedSession && !existing,
+      canReview: !existing,
       alreadyReviewed: !!existing,
     };
   }

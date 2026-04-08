@@ -22,7 +22,7 @@ export class ReviewController {
   async createReview(
     @Request() req: { user: { id: string; role: string } },
     @Body() body: {
-      tuitionRequestId: string;
+      sessionId: string;
       rating: number;
       comment?: string;
       ratingCommunication?: number;
@@ -45,11 +45,11 @@ export class ReviewController {
   }
 
   @UseGuards(JwtAuthGuard)
-  @Get("can-review/:tuitionRequestId")
+  @Get("can-review/:sessionId")
   async checkCanReview(
     @Request() req: { user: { id: string } },
-    @Param("tuitionRequestId") tuitionRequestId: string,
+    @Param("sessionId") sessionId: string,
   ) {
-    return this.reviewService.checkCanReview(req.user.id, tuitionRequestId);
+    return this.reviewService.checkCanReview(req.user.id, sessionId);
   }
 }

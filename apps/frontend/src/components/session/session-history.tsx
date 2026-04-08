@@ -22,15 +22,16 @@ type Props = {
 };
 
 type ReviewTarget = {
-  tuitionRequestId: string;
-  tutorName: string;
+  sessionId: string;
+  revieweeName: string;
+  role: "STUDENT" | "TUTOR";
 };
 
-export function SessionHistory({ currentUserId }: Props) {
+export function SessionHistory({ currentUserId, userRole }: Props) {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
   const [reviewTarget, setReviewTarget] = useState<ReviewTarget | null>(null);
-  const [reviewedRequestIds, setReviewedRequestIds] = useState<Set<string>>(new Set());
+  const [reviewedSessionIds, setReviewedSessionIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     apiGet<Session[]>("/sessions/history")
@@ -41,7 +42,7 @@ export function SessionHistory({ currentUserId }: Props) {
 
   function handleReviewSubmitted() {
     if (reviewTarget) {
-      setReviewedRequestIds((prev) => new Set([...prev, reviewTarget.tuitionRequestId]));
+      setReviewedSessionIds((prev) => new Set([...prev, reviewTarget.sessionId]));
     }
     setReviewTarget(null);
   }
@@ -50,8 +51,9 @@ export function SessionHistory({ currentUserId }: Props) {
     <>
       {reviewTarget && (
         <ReviewModal
-          tuitionRequestId={reviewTarget.tuitionRequestId}
-          tutorName={reviewTarget.tutorName}
+          sessionId={reviewTarget.sessionId}
+          revieweeName={reviewTarget.revieweeName}
+          role={reviewTarget.role}
           onClose={() => setReviewTarget(null)}
           onSubmitted={handleReviewSubmitted}
         />
@@ -86,8 +88,9 @@ export function SessionHistory({ currentUserId }: Props) {
                   : (session.tutor.name ?? session.tutor.email);
                 const scheduled = new Date(session.scheduledAt);
                 const cfg = STATUS_CONFIG[session.status];
-                const requestId = session.application.request.id;
-                const alreadyReviewed = reviewedRequestIds.has(requestId);
+                const alreadyReviewed = reviewedSessionIds.has(session.id);
+                const isCompleted = session.status === "COMPLETED";
+                const effectiveRole = userRole ?? (isTutor ? "TUTOR" : "STUDENT");
 
                 return (
                   <motion.div
@@ -135,36 +138,35 @@ export function SessionHistory({ currentUserId }: Props) {
                             {session.notes}
                           </p>
                         )}
-                        {session.status === "COMPLETED" &&
-                          session.studentId === currentUserId &&
-                          !alreadyReviewed && (
-                            <div className="mt-3 pt-3 border-t border-white/5">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="gap-1.5 text-xs border-amber-500/20 text-amber-400 hover:bg-amber-500/10"
-                                onClick={() =>
-                                  setReviewTarget({
-                                    tuitionRequestId: requestId,
-                                    tutorName: session.tutor.name ?? "Tutor",
-                                  })
-                                }
-                              >
-                                <Star className="h-3.5 w-3.5" />
-                                Leave a Review
-                              </Button>
-                            </div>
-                          )}
-                        {session.status === "COMPLETED" &&
-                          session.studentId === currentUserId &&
-                          alreadyReviewed && (
-                            <div className="mt-3 pt-3 border-t border-white/5">
-                              <p className="text-xs text-emerald-400 flex items-center gap-1">
-                                <Star className="h-3 w-3 fill-emerald-400" />
-                                Review submitted
-                              </p>
-                            </div>
-                          )}
+                        {isCompleted && !alreadyReviewed && (
+                          <div className="mt-3 pt-3 border-t border-white/5">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="gap-1.5 text-xs border-amber-500/20 text-amber-400 hover:bg-amber-500/10"
+                              onClick={() =>
+                                setReviewTarget({
+                                  sessionId: session.id,
+                                  revieweeName: isTutor
+                                    ? (session.student.name ?? "Student")
+                                    : (session.tutor.name ?? "Tutor"),
+                                  role: effectiveRole,
+                                })
+                              }
+                            >
+                              <Star className="h-3.5 w-3.5" />
+                              {isTutor ? "Rate this Student" : "Leave a Review"}
+                            </Button>
+                          </div>
+                        )}
+                        {isCompleted && alreadyReviewed && (
+                          <div className="mt-3 pt-3 border-t border-white/5">
+                            <p className="text-xs text-emerald-400 flex items-center gap-1">
+                              <Star className="h-3 w-3 fill-emerald-400" />
+                              Review submitted
+                            </p>
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
                   </motion.div>

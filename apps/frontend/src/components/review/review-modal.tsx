@@ -10,18 +10,26 @@ import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
 type Props = {
-  tuitionRequestId: string;
-  tutorName: string;
+  sessionId: string;
+  revieweeName: string;
+  role: "STUDENT" | "TUTOR";
   onClose: () => void;
   onSubmitted?: () => void;
 };
 
-const DIMENSIONS = [
+const STUDENT_DIMENSIONS = [
   { key: "ratingCommunication", label: "Communication" },
   { key: "ratingKnowledge", label: "Knowledge" },
   { key: "ratingPunctuality", label: "Punctuality" },
   { key: "ratingPatience", label: "Patience" },
   { key: "ratingValue", label: "Value for Money" },
+] as const;
+
+const TUTOR_DIMENSIONS = [
+  { key: "ratingCommunication", label: "Communication" },
+  { key: "ratingPunctuality", label: "Punctuality" },
+  { key: "ratingPatience", label: "Engagement" },
+  { key: "ratingValue", label: "Preparedness" },
 ] as const;
 
 function StarPicker({
@@ -70,12 +78,14 @@ const RATING_LABELS: Record<number, string> = {
   5: "Excellent",
 };
 
-export function ReviewModal({ tuitionRequestId, tutorName, onClose, onSubmitted }: Props) {
+export function ReviewModal({ sessionId, revieweeName, role, onClose, onSubmitted }: Props) {
   const [overallRating, setOverallRating] = useState(0);
   const [dimensions, setDimensions] = useState<Record<string, number>>({});
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+
+  const dimensionList = role === "STUDENT" ? STUDENT_DIMENSIONS : TUTOR_DIMENSIONS;
 
   function setDimension(key: string, value: number) {
     setDimensions((prev) => ({ ...prev, [key]: value }));
@@ -90,7 +100,7 @@ export function ReviewModal({ tuitionRequestId, tutorName, onClose, onSubmitted 
     setSubmitting(true);
     try {
       await apiPost("/reviews", {
-        tuitionRequestId,
+        sessionId,
         rating: overallRating,
         comment: comment.trim() || undefined,
         ratingCommunication: dimensions.ratingCommunication,
@@ -124,7 +134,7 @@ export function ReviewModal({ tuitionRequestId, tutorName, onClose, onSubmitted 
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.95 }}
-          className="relative z-10 w-full max-w-md glass-card rounded-2xl p-6 shadow-2xl"
+          className="relative z-10 w-full max-w-md glass-card rounded-2xl p-6 shadow-2xl max-h-[90vh] overflow-y-auto"
         >
           <button
             onClick={onClose}
@@ -138,7 +148,7 @@ export function ReviewModal({ tuitionRequestId, tutorName, onClose, onSubmitted 
               <CheckCircle2 className="h-12 w-12 text-emerald-400 mx-auto" />
               <h2 className="text-xl font-bold">Review Submitted!</h2>
               <p className="text-muted-foreground text-sm">
-                Thank you for your feedback on {tutorName}.
+                Thank you for your feedback on {revieweeName}.
               </p>
               <Button variant="gradient" className="mt-2" onClick={onClose}>
                 Close
@@ -149,7 +159,7 @@ export function ReviewModal({ tuitionRequestId, tutorName, onClose, onSubmitted 
               <div className="mb-5">
                 <h2 className="text-lg font-bold">Leave a Review</h2>
                 <p className="text-sm text-muted-foreground mt-0.5">
-                  Rate your experience with {tutorName}
+                  Rate your experience with {revieweeName}
                 </p>
               </div>
 
@@ -167,11 +177,11 @@ export function ReviewModal({ tuitionRequestId, tutorName, onClose, onSubmitted 
                 </div>
 
                 <div className="border-t border-white/10 pt-4">
-                  <p className="text-sm font-medium mb-3 text-muted-foreground">Detailed Ratings (optional)</p>
+                  <p className="text-sm font-medium mb-3 text-muted-foreground">Detailed Ratings <span className="text-xs">(optional)</span></p>
                   <div className="space-y-3">
-                    {DIMENSIONS.map(({ key, label }) => (
+                    {dimensionList.map(({ key, label }) => (
                       <div key={key} className="flex items-center justify-between gap-3">
-                        <span className="text-sm text-muted-foreground w-36 shrink-0">{label}</span>
+                        <span className="text-sm text-muted-foreground w-32 shrink-0">{label}</span>
                         <StarPicker
                           value={dimensions[key] ?? 0}
                           onChange={(v) => setDimension(key, v)}
@@ -188,7 +198,7 @@ export function ReviewModal({ tuitionRequestId, tutorName, onClose, onSubmitted 
                 <div>
                   <label className="text-sm font-medium block mb-1.5">
                     Comment{" "}
-                    <span className="text-muted-foreground font-normal">(optional)</span>
+                    <span className="text-muted-foreground font-normal text-xs">(optional)</span>
                   </label>
                   <Textarea
                     value={comment}

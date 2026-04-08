@@ -9,6 +9,8 @@ import {
 } from "@nestjs/common";
 import { DocumentService } from "./document.service";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
+import { RolesGuard } from "../auth/roles.guard";
+import { Roles } from "../auth/roles.decorator";
 
 @Controller("documents")
 export class DocumentController {
@@ -29,7 +31,8 @@ export class DocumentController {
     return this.documentService.getMyDocuments(req.user.id);
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("ADMIN")
   @Post(":id/approve")
   async approve(
     @Request() req: { user: { id: string; role: string } },
@@ -38,7 +41,8 @@ export class DocumentController {
     return this.documentService.approveDocument(req.user.id, id);
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("ADMIN")
   @Post(":id/reject")
   async reject(
     @Request() req: { user: { id: string; role: string } },

@@ -97,6 +97,17 @@ export class DocumentService {
       },
     });
 
+    const hasAnyApproved = await this.prisma.document.findFirst({
+      where: { user_id: doc.user_id, status: "APPROVED" },
+    });
+
+    if (!hasAnyApproved) {
+      await this.prisma.tutorProfile.updateMany({
+        where: { user_id: doc.user_id },
+        data: { is_verified: false },
+      });
+    }
+
     await this.notificationService.create({
       userId: doc.user_id,
       type: "DOCUMENT_REJECTED",
