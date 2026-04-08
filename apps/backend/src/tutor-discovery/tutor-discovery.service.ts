@@ -5,9 +5,10 @@ export interface TutorListQuery {
   subject?: string;
   division?: string;
   area?: string;
+  gender?: string;
   minRate?: number;
   maxRate?: number;
-  sort?: "rating" | "rate_asc" | "rate_desc" | "newest";
+  sort?: "relevance" | "rating" | "rate_asc" | "rate_desc" | "newest";
   page?: number;
   limit?: number;
 }
@@ -21,9 +22,10 @@ export class TutorDiscoveryService {
       subject,
       division,
       area,
+      gender,
       minRate,
       maxRate,
-      sort = "rating",
+      sort = "relevance",
       page = 1,
       limit = 12,
     } = query;
@@ -34,6 +36,7 @@ export class TutorDiscoveryService {
       is_profile_public: true,
       ...(division && { division }),
       ...(area && { areas: { has: area } }),
+      ...(gender && { gender }),
       ...(minRate || maxRate
         ? {
             hourly_rate: {
@@ -48,7 +51,11 @@ export class TutorDiscoveryService {
     };
 
     const orderBy: Record<string, unknown>[] = [];
-    if (sort === "rating") {
+    if (sort === "relevance") {
+      orderBy.push({ is_premium: "desc" });
+      orderBy.push({ average_rating: "desc" });
+      orderBy.push({ total_reviews: "desc" });
+    } else if (sort === "rating") {
       orderBy.push({ average_rating: "desc" });
     } else if (sort === "rate_asc") {
       orderBy.push({ hourly_rate: "asc" });
@@ -58,18 +65,10 @@ export class TutorDiscoveryService {
       orderBy.push({ created_at: "desc" });
     }
 
-    const [total, featured, regular] = await Promise.all([
+    const [total, allTutors] = await Promise.all([
       this.prisma.tutorProfile.count({ where }),
       this.prisma.tutorProfile.findMany({
-        where: { ...where, is_premium: true },
-        include: {
-          user: { select: { id: true, name: true, is_verified: true } },
-        },
-        orderBy,
-        take: 4,
-      }),
-      this.prisma.tutorProfile.findMany({
-        where: { ...where, is_premium: false },
+        where,
         include: {
           user: { select: { id: true, name: true, is_verified: true } },
         },
@@ -79,7 +78,7 @@ export class TutorDiscoveryService {
       }),
     ]);
 
-    const mapTutor = (t: typeof featured[0], isPremium: boolean) => ({
+    const mapTutor = (t: typeof allTutors[0]) => ({
       id: t.user_id,
       name: t.user.name,
       bio: t.bio ? t.bio.slice(0, 120) + (t.bio.length > 120 ? "..." : "") : null,
@@ -89,15 +88,20 @@ export class TutorDiscoveryService {
       areas: t.areas,
       education: t.education,
       experience: t.experience,
+      gender: t.gender,
       isVerified: t.is_verified,
-      isPremium: isPremium,
+      isPremium: t.is_premium,
       averageRating: t.average_rating ? Number(t.average_rating) : null,
       totalReviews: t.total_reviews,
+      totalStudents: t.total_students,
     });
 
+    const featured = allTutors.filter((t) => t.is_premium).map(mapTutor);
+    const tutors = allTutors.map(mapTutor);
+
     return {
-      featured: featured.map((t) => mapTutor(t, true)),
-      tutors: regular.map((t) => mapTutor(t, false)),
+      featured,
+      tutors,
       total,
       page,
       totalPages: Math.ceil(total / limit),
@@ -146,6 +150,8 @@ export class TutorDiscoveryService {
       take: 5,
     });
 
+    const ratingBreakdown = this.computeRatingBreakdown(reviews);
+
     return {
       id: profile.user_id,
       name: profile.user.name,
@@ -156,6 +162,7 @@ export class TutorDiscoveryService {
       areas: profile.areas,
       education: profile.education,
       experience: profile.experience,
+      gender: profile.gender,
       qualifications: profile.qualifications,
       isVerified: profile.is_verified,
       isPremium: profile.is_premium,
@@ -167,13 +174,62 @@ export class TutorDiscoveryService {
       contact: isConnected
         ? { email: profile.user.email, phone: profile.user.phone }
         : null,
+      ratingBreakdown,
       reviews: reviews.map((r) => ({
         id: r.id,
         rating: r.rating,
         comment: r.comment,
         studentName: r.student.name ? r.student.name.split(" ")[0] : "Student",
         createdAt: r.createdAt,
+        breakdown: {
+          communication: r.rating_communication,
+          knowledge: r.rating_knowledge,
+          punctuality: r.rating_punctuality,
+          patience: r.rating_patience,
+          value: r.rating_value,
+        },
       })),
+    };
+  }
+
+  private computeRatingBreakdown(reviews: {
+    rating: number;
+    rating_communication: number | null;
+    rating_knowledge: number | null;
+    rating_punctuality: number | null;
+    rating_patience: number | null;
+    rating_value: number | null;
+  }[]) {
+    if (reviews.length === 0) return null;
+
+    const withSub = reviews.filter((r) =>
+      r.rating_communication || r.rating_knowledge || r.rating_punctuality || r.rating_patience || r.rating_value
+    );
+
+    if (withSub.length === 0) {
+      const avg = reviews.reduce((s, r) => s + r.rating, 0) / reviews.length;
+      return {
+        communication: Number(avg.toFixed(1)),
+        knowledge: Number(avg.toFixed(1)),
+        punctuality: Number(avg.toFixed(1)),
+        patience: Number(avg.toFixed(1)),
+        value: Number(avg.toFixed(1)),
+        hasDetailedBreakdown: false,
+      };
+    }
+
+    const avg = (field: (r: typeof withSub[0]) => number | null) => {
+      const vals = withSub.map(field).filter((v) => v !== null) as number[];
+      return vals.length > 0 ? Number((vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1)) : null;
+    };
+
+    return {
+      communication: avg((r) => r.rating_communication),
+      knowledge: avg((r) => r.rating_knowledge),
+      punctuality: avg((r) => r.rating_punctuality),
+      patience: avg((r) => r.rating_patience),
+      value: avg((r) => r.rating_value),
+      hasDetailedBreakdown: true,
     };
   }
 }

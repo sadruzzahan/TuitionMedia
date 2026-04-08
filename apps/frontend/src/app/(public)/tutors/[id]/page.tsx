@@ -17,6 +17,15 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PublicNav } from "@/components/public-nav";
 
+type RatingBreakdown = {
+  communication: number | null;
+  knowledge: number | null;
+  punctuality: number | null;
+  patience: number | null;
+  value: number | null;
+  hasDetailedBreakdown: boolean;
+} | null;
+
 type TutorProfileData = {
   id: string;
   name: string | null;
@@ -27,7 +36,9 @@ type TutorProfileData = {
   areas: string[];
   education: string | null;
   experience: number;
+  gender: string | null;
   qualifications: string[];
+  ratingBreakdown: RatingBreakdown;
   isVerified: boolean;
   isPremium: boolean;
   isOnline: boolean;
@@ -266,6 +277,44 @@ export default async function TutorProfilePage({ params }: { params: Promise<{ i
                           </li>
                         ))}
                       </ul>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Rating Breakdown */}
+              {tutor.ratingBreakdown && tutor.totalReviews > 0 && (
+                <Card className="glass-card">
+                  <CardHeader>
+                    <CardTitle className="text-base">Rating Breakdown</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {[
+                        { label: "Communication", value: tutor.ratingBreakdown.communication },
+                        { label: "Knowledge", value: tutor.ratingBreakdown.knowledge },
+                        { label: "Punctuality", value: tutor.ratingBreakdown.punctuality },
+                        { label: "Patience", value: tutor.ratingBreakdown.patience },
+                        { label: "Value", value: tutor.ratingBreakdown.value },
+                      ].map(({ label, value }) => (
+                        <div key={label} className="flex items-center gap-3">
+                          <span className="text-sm text-muted-foreground w-28 shrink-0">{label}</span>
+                          <div className="flex-1 h-2 rounded-full bg-white/10 overflow-hidden">
+                            <div
+                              className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-emerald-500"
+                              style={{ width: `${value ? (value / 5) * 100 : 0}%` }}
+                            />
+                          </div>
+                          <span className="text-sm font-medium w-8 text-right">
+                            {value !== null && value !== undefined ? value.toFixed(1) : "—"}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    {!tutor.ratingBreakdown.hasDetailedBreakdown && (
+                      <p className="text-xs text-muted-foreground mt-3">
+                        Estimated from overall rating. Detailed breakdown available once more reviews are submitted.
+                      </p>
                     )}
                   </CardContent>
                 </Card>

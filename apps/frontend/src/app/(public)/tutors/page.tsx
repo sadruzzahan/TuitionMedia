@@ -203,9 +203,10 @@ function TutorsContent() {
 
   const [subject, setSubject] = useState(searchParams.get("subject") ?? "all");
   const [division, setDivision] = useState(searchParams.get("division") ?? "all");
+  const [gender, setGender] = useState(searchParams.get("gender") ?? "all");
   const [minRate, setMinRate] = useState(searchParams.get("minRate") ?? "");
   const [maxRate, setMaxRate] = useState(searchParams.get("maxRate") ?? "");
-  const [sort, setSort] = useState<string>(searchParams.get("sort") ?? "rating");
+  const [sort, setSort] = useState<string>(searchParams.get("sort") ?? "relevance");
   const [page, setPage] = useState(Number(searchParams.get("page") ?? "1"));
   const [showFilters, setShowFilters] = useState(false);
 
@@ -218,6 +219,7 @@ function TutorsContent() {
       const params = new URLSearchParams();
       if (subject !== "all") params.set("subject", subject);
       if (division !== "all") params.set("division", division);
+      if (gender !== "all") params.set("gender", gender);
       if (minRate) params.set("minRate", minRate);
       if (maxRate) params.set("maxRate", maxRate);
       params.set("sort", sort);
@@ -233,17 +235,18 @@ function TutorsContent() {
     } finally {
       setLoading(false);
     }
-  }, [subject, division, minRate, maxRate, sort, page]);
+  }, [subject, division, gender, minRate, maxRate, sort, page]);
 
   useEffect(() => {
     fetchTutors();
   }, [fetchTutors]);
 
-  const hasFilters = subject !== "all" || division !== "all" || minRate || maxRate;
+  const hasFilters = subject !== "all" || division !== "all" || gender !== "all" || minRate || maxRate;
 
   const clearFilters = () => {
     setSubject("all");
     setDivision("all");
+    setGender("all");
     setMinRate("");
     setMaxRate("");
     setPage(1);
@@ -272,10 +275,11 @@ function TutorsContent() {
         >
           <div className="flex gap-2 max-w-2xl mx-auto flex-wrap">
             <Select value={sort} onValueChange={(v) => { setSort(v); setPage(1); }}>
-              <SelectTrigger className="bg-white/5 border-white/10 w-40">
+              <SelectTrigger className="bg-white/5 border-white/10 w-44">
                 <SelectValue placeholder="Sort by" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="relevance">Most Relevant</SelectItem>
                 <SelectItem value="rating">Top Rated</SelectItem>
                 <SelectItem value="rate_asc">Rate: Low → High</SelectItem>
                 <SelectItem value="rate_desc">Rate: High → Low</SelectItem>
@@ -359,6 +363,30 @@ function TutorsContent() {
                     placeholder="e.g. 1000"
                     className="bg-white/5 border-white/10"
                   />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="text-xs text-muted-foreground mb-1.5 block">Tutor Gender Preference</label>
+                  <div className="flex gap-3">
+                    {[
+                      { value: "all", label: "Any" },
+                      { value: "Male", label: "Male" },
+                      { value: "Female", label: "Female" },
+                    ].map((opt) => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => { setGender(opt.value); setPage(1); }}
+                        className={cn(
+                          "flex-1 rounded-lg border py-2 text-sm transition-all",
+                          gender === opt.value
+                            ? "border-cyan-500/50 bg-cyan-500/10 text-cyan-400"
+                            : "border-white/10 bg-white/5 text-muted-foreground hover:border-white/20"
+                        )}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             </motion.div>

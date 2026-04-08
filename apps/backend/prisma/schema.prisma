@@ -97,6 +97,11 @@ model Review {
   tutorId            String         @map("tutor_id")
   rating             Int
   comment            String?
+  rating_communication Int?
+  rating_knowledge     Int?
+  rating_punctuality   Int?
+  rating_patience      Int?
+  rating_value         Int?
   createdAt          DateTime       @default(now()) @map("created_at")
   updated_at         DateTime       @updatedAt
   student            User           @relation("reviews_student_idTousers", fields: [studentId], references: [id], onDelete: Cascade)
@@ -271,6 +276,7 @@ model TutorProfile {
   total_students    Int      @default(0)
   total_hours       Int      @default(0)
   is_online         Boolean  @default(false)
+  gender            String?
   created_at        DateTime @default(now())
   updated_at        DateTime @updatedAt
   areas             String[]
