@@ -47,11 +47,14 @@ bash start.sh
 ### Dashboard (auth required)
 | Route | Role | Description |
 |-------|------|-------------|
-| `/dashboard/student` | STUDENT | List my tuition requests |
+| `/dashboard/student` | STUDENT | List my tuition requests + Upcoming Sessions widget |
 | `/dashboard/student/new` | STUDENT | Post a new request |
-| `/dashboard/student/:id` | STUDENT | Request details + accept/reject applications |
+| `/dashboard/student/:id` | STUDENT | Request details + accept/reject applications + Book Session |
+| `/dashboard/student/sessions` | STUDENT | Upcoming & past sessions list |
 | `/dashboard/tutor` | TUTOR | Job board — browse open requests |
-| `/dashboard/tutor/applications` | TUTOR | My applications + payment status |
+| `/dashboard/tutor/applications` | TUTOR | My applications + payment status + Upcoming Sessions widget |
+| `/dashboard/tutor/sessions` | TUTOR | Upcoming & past sessions (confirm/cancel/complete) |
+| `/dashboard/tutor/schedule` | TUTOR | Availability picker + session history |
 | `/dashboard/profile` | All | Edit profile |
 
 ## Business Model
@@ -93,7 +96,19 @@ bash start.sh
   - "Message" button appears on student request detail page and tutor applications page when `status === BOTH_PAID`
   - `useSocket` hook manages shared Socket.IO connection with JWT auth
   - `NEXT_PUBLIC_SOCKET_URL` env var for direct backend WebSocket connection
-- [ ] Task #4: Session Scheduling & Management
+- [x] Task #4: Session Scheduling & Management — **COMPLETE**
+  - `Availability` model: tutorId, dayOfWeek, startHour, endHour
+  - `Session` model: applicationId, studentId, tutorId, scheduledAt, durationMinutes, subject, notes, status (PENDING/CONFIRMED/COMPLETED/CANCELLED)
+  - `SessionStatus` and new `NotificationType` values (SESSION_BOOKED/CONFIRMED/CANCELLED/COMPLETED)
+  - `SessionModule` with REST API: PUT /sessions/availability, GET /sessions/availability/:tutorId, GET /sessions/availability/:tutorId/slots, POST /sessions/book/:applicationId, POST /sessions/:id/confirm|cancel|complete, GET /sessions/upcoming, GET /sessions/history
+  - Frontend: `AvailabilityPicker` for weekly slot management, `BookSessionDialog` with calendar week view, `SessionCard` with action buttons, `UpcomingSessionsWidget`, `SessionHistory`
+  - Tutor Schedule page (/dashboard/tutor/schedule): weekly availability picker + session history
+  - Tutor Sessions page (/dashboard/tutor/sessions): upcoming sessions (confirm/cancel/complete) + history tab
+  - Student Sessions page (/dashboard/student/sessions): upcoming + history
+  - Book Session button on student request detail page (only for BOTH_PAID/CONNECTED applications)
+  - UpcomingSessionsWidget embedded in student dashboard and tutor applications pages
+  - Notification routing for all session types (SESSION_BOOKED → tutor, SESSION_CONFIRMED → student, etc.)
+  - Navigation sidebar updated for both roles with Sessions + Schedule links
 - [ ] Task #5: Reviews, Ratings & Verification
 - [ ] Task #6: Admin Dashboard & Platform Analytics
 

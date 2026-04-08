@@ -22,6 +22,9 @@ import { apiGet, apiPost } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import { PaymentMethodSelector } from "@/components/payment/payment-method-selector";
 import { ChatDrawer } from "@/components/chat/chat-drawer";
+import { UpcomingSessionsWidget } from "@/components/session/upcoming-sessions-widget";
+import { useAuthStore } from "@/store/auth-store";
+import { useRouter } from "next/navigation";
 
 type Application = {
   id: string;
@@ -124,6 +127,8 @@ export default function TutorApplicationsPage() {
   const [chatOpen, setChatOpen] = useState(false);
   const [chatApplicationId, setChatApplicationId] = useState<string | null>(null);
   const [chatRecipientName, setChatRecipientName] = useState("");
+  const user = useAuthStore((s) => s.user);
+  const router = useRouter();
 
   const fetchApplications = async () => {
     try {
@@ -231,7 +236,7 @@ export default function TutorApplicationsPage() {
   };
 
   return (
-    <div>
+    <div className="space-y-6">
       {chatOpen && chatApplicationId && (
         <ChatDrawer
           applicationId={chatApplicationId}
@@ -251,6 +256,17 @@ export default function TutorApplicationsPage() {
         />
       )}
 
+      {user && (
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
+          <UpcomingSessionsWidget
+            currentUserId={user.id}
+            role="TUTOR"
+            onViewAll={() => router.push("/dashboard/tutor/sessions")}
+          />
+        </motion.div>
+      )}
+
+      <div>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -410,6 +426,7 @@ export default function TutorApplicationsPage() {
           ))}
         </div>
       )}
+      </div>
     </div>
   );
 }

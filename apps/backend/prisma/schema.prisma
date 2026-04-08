@@ -24,8 +24,11 @@ model User {
   booking_fees_tutor   BookingFee[]     @relation("booking_fees_tutor_idTousers")
   documents_reviewed   Document[]       @relation("documents_reviewed_byTousers")
   documents            Document[]       @relation("documents_user_idTousers")
+  availability         Availability[]
   messages             Message[]
   notifications        Notification[]
+  sessions_as_student  Session[]      @relation("sessions_as_student")
+  sessions_as_tutor    Session[]      @relation("sessions_as_tutor")
   otp_codes            OtpCode[]
   payments             Payment[]
   refresh_tokens       RefreshToken[]
@@ -86,10 +89,46 @@ model Application {
   tutor         User              @relation(fields: [tutorId], references: [id], onDelete: Cascade)
   payments      Payment[]
   messages      Message[]
+  sessions      Session[]
 
   @@unique([requestId, tutorId])
   @@index([status])
   @@map("applications")
+}
+
+model Availability {
+  id         String   @id @default(cuid())
+  tutorId    String   @map("tutor_id")
+  dayOfWeek  Int      @map("day_of_week")
+  startHour  Int      @map("start_hour")
+  endHour    Int      @map("end_hour")
+  tutor      User     @relation(fields: [tutorId], references: [id], onDelete: Cascade)
+
+  @@index([tutorId])
+  @@map("availability")
+}
+
+model Session {
+  id              String        @id @default(cuid())
+  applicationId   String        @map("application_id")
+  studentId       String        @map("student_id")
+  tutorId         String        @map("tutor_id")
+  scheduledAt     DateTime      @map("scheduled_at")
+  durationMinutes Int           @map("duration_minutes")
+  subject         String
+  notes           String?
+  status          SessionStatus @default(PENDING)
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+  application     Application   @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  student         User          @relation("sessions_as_student", fields: [studentId], references: [id], onDelete: Cascade)
+  tutor           User          @relation("sessions_as_tutor", fields: [tutorId], references: [id], onDelete: Cascade)
+
+  @@index([studentId])
+  @@index([tutorId])
+  @@index([applicationId])
+  @@index([scheduledAt])
+  @@map("sessions")
 }
 
 model Message {
@@ -365,11 +404,22 @@ enum NotificationType {
   APPLICATION_ACCEPTED
   APPLICATION_REJECTED
   NEW_MESSAGE
+  SESSION_BOOKED
+  SESSION_CONFIRMED
+  SESSION_CANCELLED
+  SESSION_COMPLETED
   SESSION_REMINDER
   SYSTEM
   PAYMENT_SUBMITTED
   PAYMENT_VERIFIED
   PAYMENT_REJECTED
+}
+
+enum SessionStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
 }
 
 enum OTPPurpose {

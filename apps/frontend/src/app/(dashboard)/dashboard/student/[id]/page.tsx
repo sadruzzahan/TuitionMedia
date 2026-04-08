@@ -17,6 +17,7 @@ import {
   Clock,
   ArrowLeft,
   MessageSquare,
+  CalendarPlus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,12 +25,14 @@ import { apiGet, apiPost, apiDelete } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import { PaymentMethodSelector } from "@/components/payment/payment-method-selector";
 import { ChatDrawer } from "@/components/chat/chat-drawer";
+import { BookSessionDialog } from "@/components/session/book-session-dialog";
 
 type Application = {
   id: string;
   coverLetter: string;
   status: string;
-  tutor: { email: string; name: string | null; phone: string | null };
+  tutorId: string;
+  tutor: { id: string; email: string; name: string | null; phone: string | null };
 };
 
 type TuitionRequest = {
@@ -79,6 +82,8 @@ export default function RequestDetailPage() {
   const [chatOpen, setChatOpen] = useState(false);
   const [chatApplicationId, setChatApplicationId] = useState<string | null>(null);
   const [chatRecipientName, setChatRecipientName] = useState("");
+  const [bookSessionOpen, setBookSessionOpen] = useState(false);
+  const [bookSessionApplicationId, setBookSessionApplicationId] = useState<string | null>(null);
 
   function refresh() {
     return apiGet<TuitionRequest>(`/tuition-requests/${requestId}`).then(setRequest);
@@ -240,6 +245,16 @@ export default function RequestDetailPage() {
           onClose={() => setChatOpen(false)}
         />
       )}
+      {bookSessionOpen && bookSessionApplicationId && activeApp && (
+        <BookSessionDialog
+          applicationId={bookSessionApplicationId}
+          tutorId={activeApp.tutor.id}
+          subjects={request?.subjects ?? []}
+          open={bookSessionOpen}
+          onClose={() => setBookSessionOpen(false)}
+          onBooked={() => setBookSessionOpen(false)}
+        />
+      )}
       {showPayment && (
         <PaymentMethodSelector
           amount={paymentAmount}
@@ -350,19 +365,33 @@ export default function RequestDetailPage() {
                       </div>
                     )}
                     {(activeApp.status === "BOTH_PAID" || activeApp.status === "CONNECTED") && (
-                      <Button
-                        variant="gradient"
-                        size="sm"
-                        className="w-full gap-2 mt-1"
-                        onClick={() => {
-                          setChatApplicationId(activeApp.id);
-                          setChatRecipientName(activeApp.tutor.name ?? activeApp.tutor.email);
-                          setChatOpen(true);
-                        }}
-                      >
-                        <MessageSquare className="h-4 w-4" />
-                        Message Tutor
-                      </Button>
+                      <div className="space-y-2 mt-1">
+                        <Button
+                          variant="gradient"
+                          size="sm"
+                          className="w-full gap-2"
+                          onClick={() => {
+                            setChatApplicationId(activeApp.id);
+                            setChatRecipientName(activeApp.tutor.name ?? activeApp.tutor.email);
+                            setChatOpen(true);
+                          }}
+                        >
+                          <MessageSquare className="h-4 w-4" />
+                          Message Tutor
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full gap-2 border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10"
+                          onClick={() => {
+                            setBookSessionApplicationId(activeApp.id);
+                            setBookSessionOpen(true);
+                          }}
+                        >
+                          <CalendarPlus className="h-4 w-4" />
+                          Book a Session
+                        </Button>
+                      </div>
                     )}
                   </div>
                 ) : (

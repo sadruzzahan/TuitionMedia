@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Bell, CheckCheck, BellRing, Zap, CreditCard, MessageSquare, Info } from "lucide-react";
+import { Bell, CheckCheck, BellRing, Zap, CreditCard, MessageSquare, Info, CalendarClock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { apiGet, apiPost } from "@/lib/api";
 import { formatDistanceToNow } from "@/lib/date-utils";
@@ -28,6 +28,7 @@ function NotifIcon({ type }: { type: string }) {
   if (type === "NEW_MESSAGE") return <MessageSquare className="h-4 w-4 text-violet-400" />;
   if (type === "PAYMENT_VERIFIED" || type === "PAYMENT_SUBMITTED") return <CreditCard className="h-4 w-4 text-amber-400" />;
   if (type === "PAYMENT_REJECTED") return <CreditCard className="h-4 w-4 text-red-400" />;
+  if (type === "SESSION_BOOKED" || type === "SESSION_CONFIRMED" || type === "SESSION_COMPLETED" || type === "SESSION_CANCELLED") return <CalendarClock className="h-4 w-4 text-cyan-400" />;
   return <Info className="h-4 w-4 text-muted-foreground" />;
 }
 
@@ -131,6 +132,13 @@ export function NotificationBell({ compact = false }: NotificationBellProps) {
       } else {
         router.push(`/dashboard/tutor/applications`);
       }
+    } else if (
+      notif.type === "SESSION_BOOKED" ||
+      notif.type === "SESSION_CONFIRMED" ||
+      notif.type === "SESSION_CANCELLED" ||
+      notif.type === "SESSION_COMPLETED"
+    ) {
+      router.push(isStudent ? `/dashboard/student/sessions` : `/dashboard/tutor/sessions`);
     } else if (applicationId) {
       router.push(isStudent ? `/dashboard/student` : `/dashboard/tutor/applications`);
     }

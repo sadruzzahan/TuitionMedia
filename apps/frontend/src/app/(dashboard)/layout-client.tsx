@@ -15,6 +15,8 @@ import {
   X,
   ChevronRight,
   Home,
+  CalendarClock,
+  Calendar,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,12 +33,15 @@ import { NotificationBell } from "@/components/notifications/notification-bell";
 const studentNav = [
   { href: "/dashboard/student", label: "My Requests", icon: BookOpen },
   { href: "/dashboard/student/new", label: "Post Request", icon: LayoutDashboard },
+  { href: "/dashboard/student/sessions", label: "Sessions", icon: CalendarClock },
   { href: "/dashboard/profile", label: "My Profile", icon: User },
 ];
 
 const tutorNav = [
   { href: "/dashboard/tutor", label: "Job Board", icon: Briefcase },
   { href: "/dashboard/tutor/applications", label: "My Applications", icon: BookOpen },
+  { href: "/dashboard/tutor/sessions", label: "Sessions", icon: CalendarClock },
+  { href: "/dashboard/tutor/schedule", label: "Schedule", icon: Calendar },
   { href: "/dashboard/profile", label: "My Profile", icon: User },
 ];
 
@@ -48,6 +53,8 @@ function getBreadcrumbs(pathname: string): { label: string; href: string }[] {
   if (pathname.includes("/dashboard/student/new")) {
     crumbs.push({ label: "My Requests", href: "/dashboard/student" });
     crumbs.push({ label: "New Request", href: "/dashboard/student/new" });
+  } else if (pathname === "/dashboard/student/sessions") {
+    crumbs.push({ label: "Sessions", href: "/dashboard/student/sessions" });
   } else if (pathname.match(/\/dashboard\/student\/[^/]+/)) {
     crumbs.push({ label: "My Requests", href: "/dashboard/student" });
     crumbs.push({ label: "Request Details", href: pathname });
@@ -58,6 +65,10 @@ function getBreadcrumbs(pathname: string): { label: string; href: string }[] {
   } else if (pathname === "/dashboard/tutor/applications") {
     crumbs.push({ label: "Job Board", href: "/dashboard/tutor" });
     crumbs.push({ label: "My Applications", href: "/dashboard/tutor/applications" });
+  } else if (pathname === "/dashboard/tutor/sessions") {
+    crumbs.push({ label: "Sessions", href: "/dashboard/tutor/sessions" });
+  } else if (pathname === "/dashboard/tutor/schedule") {
+    crumbs.push({ label: "Schedule", href: "/dashboard/tutor/schedule" });
   } else if (pathname === "/dashboard/profile") {
     crumbs.push({ label: "My Profile", href: "/dashboard/profile" });
   }
@@ -105,7 +116,8 @@ export default function DashboardLayoutClient({
     pathname === href ||
     (href === "/dashboard/student" &&
       pathname.startsWith("/dashboard/student/") &&
-      pathname !== "/dashboard/student/new");
+      pathname !== "/dashboard/student/new" &&
+      pathname !== "/dashboard/student/sessions");
 
   const breadcrumbs = getBreadcrumbs(pathname);
 

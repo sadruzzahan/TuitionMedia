@@ -10,6 +10,7 @@ import { PaymentModule } from "./payment/payment.module";
 import { TutorDiscoveryModule } from "./tutor-discovery/tutor-discovery.module";
 import { NotificationModule } from "./notification/notification.module";
 import { ChatModule } from "./chat/chat.module";
+import { SessionModule } from "./session/session.module";
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { ChatModule } from "./chat/chat.module";
     TutorDiscoveryModule,
     NotificationModule,
     ChatModule,
+    SessionModule,
   ],
   controllers: [AppController],
   providers: [AppService],

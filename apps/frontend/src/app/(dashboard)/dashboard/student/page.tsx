@@ -2,11 +2,14 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
 import { BookOpen, Plus, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiGet } from "@/lib/api";
+import { UpcomingSessionsWidget } from "@/components/session/upcoming-sessions-widget";
+import { useAuthStore } from "@/store/auth-store";
 
 type Request = {
   id: string;
@@ -20,6 +23,8 @@ type Request = {
 export default function StudentDashboardPage() {
   const [requests, setRequests] = useState<Request[]>([]);
   const [loading, setLoading] = useState(true);
+  const user = useAuthStore((s) => s.user);
+  const router = useRouter();
 
   useEffect(() => {
     apiGet<Request[]>("/tuition-requests/my")
@@ -36,7 +41,17 @@ export default function StudentDashboardPage() {
   };
 
   return (
-    <div>
+    <div className="space-y-8">
+      {user && (
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
+          <UpcomingSessionsWidget
+            currentUserId={user.id}
+            role="STUDENT"
+            onViewAll={() => router.push("/dashboard/student/sessions")}
+          />
+        </motion.div>
+      )}
+      <div>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -118,6 +133,7 @@ export default function StudentDashboardPage() {
           </AnimatePresence>
         </div>
       )}
+      </div>
     </div>
   );
 }
