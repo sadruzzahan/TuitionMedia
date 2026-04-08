@@ -86,7 +86,8 @@ export class TutorDiscoveryService {
     const featuredWhere = { ...where, is_premium: true };
     const regularWhere = { ...where, is_premium: false };
 
-    const [total, featuredTutors, regularTutors] = await Promise.all([
+    const [total, regularCount, featuredTutors, regularTutors] = await Promise.all([
+      this.prisma.tutorProfile.count({ where }),
       this.prisma.tutorProfile.count({ where: regularWhere }),
       this.prisma.tutorProfile.findMany({
         where: featuredWhere,
@@ -132,7 +133,7 @@ export class TutorDiscoveryService {
       tutors: regularTutors.map(mapTutor),
       total,
       page,
-      totalPages: Math.ceil(total / limit),
+      totalPages: Math.ceil(regularCount / limit),
     };
   }
 

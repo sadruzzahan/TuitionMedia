@@ -300,10 +300,75 @@ function TutorsContent() {
           </p>
         </motion.div>
 
+        {/* Quick Search Bar */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
+          className="mb-5"
+        >
+          <div className="glass-card rounded-2xl p-4 max-w-4xl mx-auto">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Select value={subjects.length === 1 ? subjects[0] : subjects.length > 1 ? "__multi__" : "all"} onValueChange={(v) => { if (v !== "all" && v !== "__multi__") { setSubjects([v]); setPage(1); } else if (v === "all") { setSubjects([]); setPage(1); } }}>
+                  <SelectTrigger className="bg-white/5 border-white/10 pl-9">
+                    <SelectValue placeholder="What subject?" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All subjects</SelectItem>
+                    {BANGLADESH_SUBJECTS.map((s) => (
+                      <SelectItem key={s} value={s}>{s}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {subjects.length > 1 && (
+                  <span className="absolute right-9 top-1/2 -translate-y-1/2 text-xs text-cyan-400 pointer-events-none">{subjects.length} selected</span>
+                )}
+              </div>
+              <div className="flex-1">
+                <Select value={division} onValueChange={(v) => { setDivision(v); setArea("all"); setPage(1); }}>
+                  <SelectTrigger className="bg-white/5 border-white/10">
+                    <MapPin className="h-3.5 w-3.5 text-muted-foreground mr-2 shrink-0" />
+                    <SelectValue placeholder="Which division?" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All locations</SelectItem>
+                    {BANGLADESH_DIVISIONS.map((d) => (
+                      <SelectItem key={d} value={d}>{d}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="sm:w-52">
+                <Select value={gradeLevel} onValueChange={(v) => { setGradeLevel(v); setPage(1); }}>
+                  <SelectTrigger className="bg-white/5 border-white/10">
+                    <SelectValue placeholder="Grade / Level" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Any grade</SelectItem>
+                    {BANGLADESH_EDUCATION_LEVELS.map((l) => (
+                      <SelectItem key={l} value={l}>{l}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button
+                variant="gradient"
+                className="gap-2 sm:w-auto"
+                onClick={fetchTutors}
+              >
+                <Search className="h-4 w-4" />
+                Search
+              </Button>
+            </div>
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
           className="mb-8 space-y-3"
         >
           <div className="flex gap-2 max-w-2xl mx-auto flex-wrap">
