@@ -279,6 +279,7 @@ model TutorProfile {
   gender            String?
   grade_levels      String[]
   teaching_mode     String?
+  available_days    String[]
   created_at        DateTime @default(now())
   updated_at        DateTime @updatedAt
   areas             String[]

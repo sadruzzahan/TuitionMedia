@@ -9,6 +9,7 @@ export interface TutorListQuery {
   gender?: string;
   gradeLevel?: string;
   teachingMode?: string;
+  availableDay?: string;
   minRate?: number;
   maxRate?: number;
   sort?: "relevance" | "rating" | "rate_asc" | "rate_desc" | "newest";
@@ -29,6 +30,7 @@ export class TutorDiscoveryService {
       gender,
       gradeLevel,
       teachingMode,
+      availableDay,
       minRate,
       maxRate,
       sort = "relevance",
@@ -54,6 +56,7 @@ export class TutorDiscoveryService {
       ...(gender && { gender }),
       ...(gradeLevel && { grade_levels: { has: gradeLevel } }),
       ...(teachingMode && { teaching_mode: teachingMode }),
+      ...(availableDay && { available_days: { has: availableDay } }),
       ...(minRate || maxRate
         ? {
             hourly_rate: {

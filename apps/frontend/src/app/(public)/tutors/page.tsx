@@ -210,6 +210,7 @@ function TutorsContent() {
   const [gender, setGender] = useState(searchParams.get("gender") ?? "all");
   const [gradeLevel, setGradeLevel] = useState(searchParams.get("gradeLevel") ?? "all");
   const [teachingMode, setTeachingMode] = useState(searchParams.get("teachingMode") ?? "all");
+  const [availableDay, setAvailableDay] = useState(searchParams.get("availableDay") ?? "all");
   const [minRate, setMinRate] = useState(searchParams.get("minRate") ?? "");
   const [maxRate, setMaxRate] = useState(searchParams.get("maxRate") ?? "");
   const [sort, setSort] = useState<string>(searchParams.get("sort") ?? "relevance");
@@ -231,6 +232,7 @@ function TutorsContent() {
       if (gender !== "all") params.set("gender", gender);
       if (gradeLevel !== "all") params.set("gradeLevel", gradeLevel);
       if (teachingMode !== "all") params.set("teachingMode", teachingMode);
+      if (availableDay !== "all") params.set("availableDay", availableDay);
       if (minRate) params.set("minRate", minRate);
       if (maxRate) params.set("maxRate", maxRate);
       params.set("sort", sort);
@@ -246,7 +248,7 @@ function TutorsContent() {
     } finally {
       setLoading(false);
     }
-  }, [subjects, division, area, gender, gradeLevel, teachingMode, minRate, maxRate, sort, page]);
+  }, [subjects, division, area, gender, gradeLevel, teachingMode, availableDay, minRate, maxRate, sort, page]);
 
   useEffect(() => {
     fetchTutors();
@@ -259,6 +261,7 @@ function TutorsContent() {
     gender !== "all",
     gradeLevel !== "all",
     teachingMode !== "all",
+    availableDay !== "all",
     !!minRate,
     !!maxRate,
   ].filter(Boolean).length;
@@ -271,6 +274,7 @@ function TutorsContent() {
     setGender("all");
     setGradeLevel("all");
     setTeachingMode("all");
+    setAvailableDay("all");
     setMinRate("");
     setMaxRate("");
     setPage(1);
@@ -498,6 +502,40 @@ function TutorsContent() {
                         className="bg-white/5 border-white/10 text-sm"
                       />
                     </div>
+                  </div>
+                </div>
+
+                {/* Availability Day */}
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1.5 block">
+                    Available On
+                    {availableDay !== "all" && <span className="text-cyan-400 ml-1">{availableDay}</span>}
+                  </label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {[
+                      { value: "all", label: "Any day" },
+                      { value: "Saturday", label: "Sat" },
+                      { value: "Sunday", label: "Sun" },
+                      { value: "Monday", label: "Mon" },
+                      { value: "Tuesday", label: "Tue" },
+                      { value: "Wednesday", label: "Wed" },
+                      { value: "Thursday", label: "Thu" },
+                      { value: "Friday", label: "Fri" },
+                    ].map((d) => (
+                      <button
+                        key={d.value}
+                        type="button"
+                        onClick={() => { setAvailableDay(d.value); setPage(1); }}
+                        className={cn(
+                          "rounded-full border px-3 py-1 text-xs transition-all",
+                          availableDay === d.value
+                            ? "border-cyan-500/50 bg-cyan-500/15 text-cyan-400"
+                            : "border-white/10 bg-white/5 text-muted-foreground hover:border-white/20"
+                        )}
+                      >
+                        {d.label}
+                      </button>
+                    ))}
                   </div>
                 </div>
 

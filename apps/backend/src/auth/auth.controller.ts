@@ -59,7 +59,7 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   upsertTutorProfile(
     @Req() req: { user: JwtUser },
-    @Body() body: { bio?: string; subjects?: string[]; hourly_rate?: number; education?: string; location?: string; experience?: number; is_profile_public?: boolean; gender?: string; grade_levels?: string[]; teaching_mode?: string },
+    @Body() body: { bio?: string; subjects?: string[]; hourly_rate?: number; education?: string; location?: string; experience?: number; is_profile_public?: boolean; gender?: string; grade_levels?: string[]; teaching_mode?: string; available_days?: string[] },
   ) {
     return this.authService.upsertTutorProfile(req.user.id, body);
   }

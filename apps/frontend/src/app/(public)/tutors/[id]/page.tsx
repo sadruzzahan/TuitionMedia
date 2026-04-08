@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { cookies } from "next/headers";
 import Link from "next/link";
 import {
   MapPin,
@@ -16,6 +17,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PublicNav } from "@/components/public-nav";
+import { ContactSection } from "./contact-section";
 
 type RatingBreakdown = {
   communication: number | null;
@@ -58,8 +60,14 @@ type TutorProfileData = {
 
 async function getTutorProfile(id: string): Promise<TutorProfileData | null> {
   try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get("auth_token")?.value ?? cookieStore.get("token")?.value;
+    const headers: Record<string, string> = {};
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+
     const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3001"}/tutors/${id}`, {
-      next: { revalidate: 60 },
+      headers,
+      next: { revalidate: 0 },
     });
     if (!res.ok) return null;
     return res.json() as Promise<TutorProfileData>;
@@ -234,12 +242,7 @@ export default async function TutorProfilePage({ params }: { params: Promise<{ i
                       Request This Tutor
                     </Button>
                   </Link>
-                  {tutor.contact && (
-                    <div className="text-xs text-muted-foreground text-center">
-                      <p>Email: {tutor.contact.email}</p>
-                      {tutor.contact.phone && <p>Phone: {tutor.contact.phone}</p>}
-                    </div>
-                  )}
+                  <ContactSection tutorId={tutor.id} />
                 </div>
               </div>
             </CardContent>
