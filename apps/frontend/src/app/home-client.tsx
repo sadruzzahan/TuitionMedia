@@ -217,7 +217,9 @@ export default function LandingPage() {
         const res = await fetch("/api/tutors?sort=rating&limit=6");
         if (!res.ok) throw new Error("Failed to fetch");
         const data = await res.json() as { featured: TutorCard[]; tutors: TutorCard[] };
-        const combined = [...data.featured, ...data.tutors].slice(0, 6);
+        const combined = [...data.featured, ...data.tutors]
+          .sort((a, b) => (b.averageRating ?? 0) - (a.averageRating ?? 0))
+          .slice(0, 6);
         setFeaturedTutors(combined);
       } catch {
         setFeaturedTutors([]);
