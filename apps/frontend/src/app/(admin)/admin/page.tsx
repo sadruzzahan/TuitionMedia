@@ -219,7 +219,7 @@ export default function AdminDashboard() {
                     borderRadius: "8px",
                     fontSize: "12px",
                   }}
-                  formatter={(value: number) => [`৳${value.toLocaleString()}`, "Revenue"]}
+                  formatter={(value) => [`৳${Number(value).toLocaleString()}`, "Revenue"]}
                 />
                 <Bar dataKey="revenue" fill="#22d3ee" radius={[4, 4, 0, 0]} />
               </BarChart>

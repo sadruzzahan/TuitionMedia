@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { apiGet, apiPut } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 type UserRow = {
@@ -32,8 +32,6 @@ const ROLES = ["ALL", "STUDENT", "TUTOR", "ADMIN"];
 
 export default function AdminUsersPage() {
   const searchParams = useSearchParams();
-  const router = useRouter();
-
   const [data, setData] = useState<UsersResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState(searchParams.get("search") ?? "");
@@ -339,7 +337,7 @@ export default function AdminUsersPage() {
                       <span className="font-medium">{value}</span>
                     </div>
                   ))}
-                  {userDetail?.tutor_profile && (
+                  {!!userDetail?.tutor_profile && (
                     <div className="pt-2 border-t border-white/10">
                       <p className="text-xs font-medium text-purple-400 mb-2">Tutor Profile</p>
                       {[
@@ -354,7 +352,7 @@ export default function AdminUsersPage() {
                       ))}
                     </div>
                   )}
-                  {userDetail?.applications && (
+                  {!!userDetail?.applications && (
                     <div className="pt-2 border-t border-white/10">
                       <p className="text-xs text-muted-foreground">
                         {(userDetail.applications as unknown[]).length} recent application(s)
