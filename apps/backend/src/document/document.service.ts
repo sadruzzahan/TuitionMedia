@@ -27,6 +27,29 @@ export class DocumentService {
       throw new BadRequestException(`Invalid document type. Allowed: ${ALLOWED_TYPES.join(", ")}`);
     }
 
+    if (!dto.fileUrl || typeof dto.fileUrl !== "string") {
+      throw new BadRequestException("File URL is required");
+    }
+
+    const ALLOWED_MIME_PREFIXES = [
+      "data:image/jpeg;base64,",
+      "data:image/jpg;base64,",
+      "data:image/png;base64,",
+      "data:image/webp;base64,",
+      "data:application/pdf;base64,",
+    ];
+    const hasValidPrefix = ALLOWED_MIME_PREFIXES.some((prefix) => dto.fileUrl.startsWith(prefix));
+    if (!hasValidPrefix) {
+      throw new BadRequestException("File must be a JPG, PNG, WebP, or PDF");
+    }
+
+    const base64Data = dto.fileUrl.split(",")[1] ?? "";
+    const sizeInBytes = Math.ceil((base64Data.length * 3) / 4);
+    const MAX_SIZE = 5 * 1024 * 1024;
+    if (sizeInBytes > MAX_SIZE) {
+      throw new BadRequestException("File size must not exceed 5MB");
+    }
+
     const existing = await this.prisma.document.findFirst({
       where: { user_id: userId, type: dto.type, status: "PENDING" },
     });

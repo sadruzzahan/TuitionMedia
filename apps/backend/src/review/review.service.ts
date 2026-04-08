@@ -19,8 +19,16 @@ export class ReviewService {
     ratingPatience?: number;
     ratingValue?: number;
   }) {
-    if (dto.rating < 1 || dto.rating > 5) {
-      throw new BadRequestException("Rating must be between 1 and 5");
+    if (!Number.isInteger(dto.rating) || dto.rating < 1 || dto.rating > 5) {
+      throw new BadRequestException("Rating must be an integer between 1 and 5");
+    }
+
+    const dimensionKeys = ["ratingCommunication", "ratingKnowledge", "ratingPunctuality", "ratingPatience", "ratingValue"] as const;
+    for (const key of dimensionKeys) {
+      const val = dto[key];
+      if (val !== undefined && (!Number.isInteger(val) || val < 1 || val > 5)) {
+        throw new BadRequestException(`${key} must be an integer between 1 and 5`);
+      }
     }
 
     const session = await this.prisma.session.findUnique({
