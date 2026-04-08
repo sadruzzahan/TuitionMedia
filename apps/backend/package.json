@@ -10,7 +10,8 @@
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\"",
     "clean": "rm -rf dist",
     "seed:admin": "ts-node prisma/seed-admin.ts",
-    "seed:test": "ts-node prisma/seed-test-data.ts"
+    "seed:test": "ts-node prisma/seed-test-data.ts",
+    "seed:featured": "ts-node prisma/seed-featured-tutors.ts"
   },
   "prisma": {
     "seed": "ts-node prisma/seed-admin.ts"

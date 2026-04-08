@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
@@ -18,6 +18,7 @@ import {
   ChevronRight,
   Phone,
   Search,
+  BadgeCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,6 +29,43 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { BANGLADESH_SUBJECTS, BANGLADESH_DIVISIONS } from "@/lib/bangladesh-data";
+
+type TutorCard = {
+  id: string;
+  name: string | null;
+  bio: string | null;
+  subjects: string[];
+  hourlyRate: number;
+  division: string | null;
+  areas: string[];
+  experience: number;
+  isVerified: boolean;
+  isPremium: boolean;
+  averageRating: number | null;
+  totalReviews: number;
+};
+
+const AVATAR_COLORS = [
+  "bg-cyan-500/20 text-cyan-400",
+  "bg-emerald-500/20 text-emerald-400",
+  "bg-violet-500/20 text-violet-400",
+  "bg-teal-500/20 text-teal-400",
+  "bg-blue-500/20 text-blue-400",
+  "bg-pink-500/20 text-pink-400",
+  "bg-amber-500/20 text-amber-400",
+  "bg-rose-500/20 text-rose-400",
+];
+
+function getAvatarColor(id: string) {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) hash = id.charCodeAt(i) + ((hash << 5) - hash);
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+}
+
+function getInitials(name: string | null) {
+  if (!name) return "T";
+  return name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
+}
 
 const STATS = [
   { value: "10,000+", label: "শিক্ষার্থী", sublabel: "Active Students" },
@@ -75,75 +113,6 @@ const STEPS_TUTOR = [
     title: "আয় শুরু করুন",
     en: "Get Connected",
     desc: "Student accepts you. Both pay ৳500. Contact info unlocked — start teaching!",
-  },
-];
-
-const FEATURED_TUTORS = [
-  {
-    name: "Dr. Rafiqul Islam",
-    subjects: ["Mathematics", "Physics"],
-    location: "Dhanmondi, Dhaka",
-    rating: 4.9,
-    reviews: 47,
-    rate: 800,
-    verified: true,
-    initials: "RI",
-    color: "bg-cyan-500/20 text-cyan-400",
-  },
-  {
-    name: "Fatema Begum",
-    subjects: ["English", "Bangla"],
-    location: "Mirpur, Dhaka",
-    rating: 4.8,
-    reviews: 32,
-    rate: 500,
-    verified: true,
-    initials: "FB",
-    color: "bg-emerald-500/20 text-emerald-400",
-  },
-  {
-    name: "Karim Hossain",
-    subjects: ["Chemistry", "Biology"],
-    location: "Sylhet Sadar",
-    rating: 4.7,
-    reviews: 28,
-    rate: 600,
-    verified: false,
-    initials: "KH",
-    color: "bg-violet-500/20 text-violet-400",
-  },
-  {
-    name: "Nasrin Akhter",
-    subjects: ["ICT", "Programming"],
-    location: "Chittagong City",
-    rating: 4.9,
-    reviews: 19,
-    rate: 700,
-    verified: true,
-    initials: "NA",
-    color: "bg-teal-500/20 text-teal-400",
-  },
-  {
-    name: "Mizanur Rahman",
-    subjects: ["Accounting", "Economics"],
-    location: "Gulshan, Dhaka",
-    rating: 4.8,
-    reviews: 63,
-    rate: 1000,
-    verified: true,
-    initials: "MR",
-    color: "bg-blue-500/20 text-blue-400",
-  },
-  {
-    name: "Shirin Sultana",
-    subjects: ["Physics", "Mathematics"],
-    location: "Rajshahi City",
-    rating: 4.6,
-    reviews: 14,
-    rate: 450,
-    verified: false,
-    initials: "SS",
-    color: "bg-pink-500/20 text-pink-400",
   },
 ];
 
@@ -215,10 +184,49 @@ const FEATURES = [
   },
 ];
 
+function TutorCardSkeleton() {
+  return (
+    <div className="glass-card rounded-2xl p-5 animate-pulse">
+      <div className="flex items-start gap-3 mb-3">
+        <div className="h-11 w-11 rounded-xl bg-white/10 shrink-0" />
+        <div className="flex-1 space-y-2">
+          <div className="h-3.5 bg-white/10 rounded w-2/3" />
+          <div className="h-3 bg-white/10 rounded w-1/2" />
+        </div>
+        <div className="h-3.5 w-16 bg-white/10 rounded" />
+      </div>
+      <div className="flex gap-1.5 mb-2">
+        <div className="h-5 w-20 rounded-full bg-white/10" />
+        <div className="h-5 w-16 rounded-full bg-white/10" />
+      </div>
+      <div className="h-3 bg-white/10 rounded w-1/3" />
+    </div>
+  );
+}
+
 export default function LandingPage() {
   const router = useRouter();
   const [searchSubject, setSearchSubject] = useState("");
   const [searchDivision, setSearchDivision] = useState("");
+  const [featuredTutors, setFeaturedTutors] = useState<TutorCard[]>([]);
+  const [tutorsLoading, setTutorsLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadFeaturedTutors() {
+      try {
+        const res = await fetch("/api/tutors?sort=rating&limit=6");
+        if (!res.ok) throw new Error("Failed to fetch");
+        const data = await res.json() as { featured: TutorCard[]; tutors: TutorCard[] };
+        const combined = [...data.featured, ...data.tutors].slice(0, 6);
+        setFeaturedTutors(combined);
+      } catch {
+        setFeaturedTutors([]);
+      } finally {
+        setTutorsLoading(false);
+      }
+    }
+    loadFeaturedTutors();
+  }, []);
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
@@ -420,49 +428,89 @@ export default function LandingPage() {
               </Link>
             </motion.div>
 
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {FEATURED_TUTORS.map((tutor, i) => (
-                <motion.div
-                  key={tutor.name}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: i * 0.07 }}
-                  whileHover={{ y: -4, scale: 1.01 }}
-                >
-                  <div className="glass-card rounded-2xl p-5 h-full hover:border-cyan-500/30 transition-all">
-                    <div className="flex items-start gap-3 mb-3">
-                      <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-sm font-bold ${tutor.color}`}>
-                        {tutor.initials}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="font-semibold text-sm">{tutor.name}</span>
-                          {tutor.verified && (
-                            <span className="rounded-full bg-emerald-500/20 px-1.5 py-0.5 text-[10px] text-emerald-400">✓ Verified</span>
+            {tutorsLoading ? (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <TutorCardSkeleton key={i} />
+                ))}
+              </div>
+            ) : featuredTutors.length === 0 ? (
+              <div className="text-center py-16">
+                <GraduationCap className="mx-auto h-12 w-12 text-muted-foreground/30 mb-4" />
+                <p className="text-muted-foreground">Tutors are joining every day. Be the first to browse!</p>
+                <Link href="/tutors" className="mt-4 inline-block">
+                  <Button variant="gradient">Browse Tutors</Button>
+                </Link>
+              </div>
+            ) : (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {featuredTutors.map((tutor, i) => {
+                  const color = getAvatarColor(tutor.id);
+                  const initials = getInitials(tutor.name);
+                  const location = tutor.division ?? (tutor.areas[0] ?? null);
+                  return (
+                    <motion.div
+                      key={tutor.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: i * 0.07 }}
+                      whileHover={{ y: -4, scale: 1.01 }}
+                    >
+                      <Link href={`/tutors/${tutor.id}`}>
+                        <div className={`glass-card rounded-2xl p-5 h-full transition-all ${tutor.isPremium ? "hover:border-amber-500/30" : "hover:border-cyan-500/30"}`}>
+                          <div className="flex items-start gap-3 mb-3">
+                            <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-sm font-bold ${color}`}>
+                              {initials}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="font-semibold text-sm">{tutor.name ?? "Tutor"}</span>
+                                {tutor.isVerified && (
+                                  <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-emerald-400" />
+                                )}
+                                {tutor.isPremium && (
+                                  <span className="flex items-center gap-0.5 shrink-0 rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[10px] text-amber-400">
+                                    <Sparkles className="h-2.5 w-2.5" />
+                                    Featured
+                                  </span>
+                                )}
+                              </div>
+                              {tutor.averageRating ? (
+                                <div className="flex items-center gap-1 mt-0.5">
+                                  <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                                  <span className="text-xs font-medium">{tutor.averageRating.toFixed(1)}</span>
+                                  <span className="text-xs text-muted-foreground">({tutor.totalReviews})</span>
+                                </div>
+                              ) : (
+                                <p className="text-xs text-muted-foreground mt-0.5">New tutor</p>
+                              )}
+                            </div>
+                            <span className="shrink-0 text-sm font-medium text-cyan-400">৳{tutor.hourlyRate.toLocaleString()}/hr</span>
+                          </div>
+                          <div className="flex flex-wrap gap-1.5 mb-2">
+                            {tutor.subjects.slice(0, 3).map((s) => (
+                              <span key={s} className="rounded-full bg-cyan-500/20 px-2.5 py-0.5 text-xs text-cyan-400">{s}</span>
+                            ))}
+                            {tutor.subjects.length > 3 && (
+                              <span className="rounded-full bg-white/10 px-2.5 py-0.5 text-xs text-muted-foreground">
+                                +{tutor.subjects.length - 3}
+                              </span>
+                            )}
+                          </div>
+                          {location && (
+                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                              <MapPin className="h-3 w-3" />
+                              {location}
+                            </div>
                           )}
                         </div>
-                        <div className="flex items-center gap-1 mt-0.5">
-                          <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                          <span className="text-xs font-medium">{tutor.rating}</span>
-                          <span className="text-xs text-muted-foreground">({tutor.reviews})</span>
-                        </div>
-                      </div>
-                      <span className="shrink-0 text-sm font-medium text-cyan-400">৳{tutor.rate}/hr</span>
-                    </div>
-                    <div className="flex flex-wrap gap-1.5 mb-2">
-                      {tutor.subjects.map((s) => (
-                        <span key={s} className="rounded-full bg-cyan-500/20 px-2.5 py-0.5 text-xs text-cyan-400">{s}</span>
-                      ))}
-                    </div>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <MapPin className="h-3 w-3" />
-                      {tutor.location}
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
+                      </Link>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            )}
 
             <div className="mt-8 text-center sm:hidden">
               <Link href="/tutors">
