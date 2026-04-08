@@ -29,7 +29,7 @@ export type AvailabilitySlot = {
 export type OpenSlot = {
   date: string;
   startHour: number;
-  endHour: number;
+  availableForMinutes: number;
 };
 
 export const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];

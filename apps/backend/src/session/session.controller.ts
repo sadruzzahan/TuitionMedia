@@ -93,4 +93,13 @@ export class SessionController {
   ) {
     return this.sessionService.completeSession(sessionId, req.user.id);
   }
+
+  @Post(":sessionId/reschedule")
+  async reschedule(
+    @Param("sessionId") sessionId: string,
+    @Body() body: { scheduledAt: string; durationMinutes?: number },
+    @Request() req: { user: { id: string } },
+  ) {
+    return this.sessionService.rescheduleSession(sessionId, req.user.id, body);
+  }
 }

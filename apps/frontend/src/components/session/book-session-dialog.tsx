@@ -46,6 +46,13 @@ export function BookSessionDialog({ applicationId, tutorId, subjects, open, onCl
   const [weekOffset, setWeekOffset] = useState(0);
 
   useEffect(() => {
+    if (selectedSlot && selectedSlot.availableForMinutes < duration) {
+      const fallback = ([30, 60, 90, 120] as const).find((d) => selectedSlot.availableForMinutes >= d) ?? 30;
+      setDuration(fallback);
+    }
+  }, [selectedSlot, duration]);
+
+  useEffect(() => {
     if (!open) return;
     setLoadingSlots(true);
     apiGet<OpenSlot[]>(`/sessions/availability/${tutorId}/slots?days=60`)
@@ -255,10 +262,15 @@ export function BookSessionDialog({ applicationId, tutorId, subjects, open, onCl
                 onChange={(e) => setDuration(Number(e.target.value))}
                 className="w-full rounded-lg bg-white/10 border border-white/10 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-cyan-500"
               >
-                <option value={30} className="bg-background">30 minutes</option>
-                <option value={60} className="bg-background">1 hour</option>
-                <option value={90} className="bg-background">1.5 hours</option>
-                <option value={120} className="bg-background">2 hours</option>
+                {([30, 60, 90, 120] as const).map((mins) => {
+                  const fits = !selectedSlot || selectedSlot.availableForMinutes >= mins;
+                  return (
+                    <option key={mins} value={mins} disabled={!fits} className="bg-background">
+                      {mins === 30 ? "30 minutes" : mins === 60 ? "1 hour" : mins === 90 ? "1.5 hours" : "2 hours"}
+                      {!fits ? " (not enough time)" : ""}
+                    </option>
+                  );
+                })}
               </select>
             </div>
           </div>

@@ -93,35 +93,36 @@ export class SessionService {
       select: { scheduledAt: true, durationMinutes: true },
     });
 
-    const slots: { date: string; startHour: number; endHour: number }[] = [];
+    const slots: { date: string; startHour: number; availableForMinutes: number }[] = [];
     const current = new Date(now);
     current.setHours(0, 0, 0, 0);
 
     while (current <= end) {
       const dayOfWeek = current.getDay();
-      const daySlots = availability.filter((a) => a.dayOfWeek === dayOfWeek);
+      const dayAvail = availability.filter((a) => a.dayOfWeek === dayOfWeek);
 
-      for (const slot of daySlots) {
-        const slotStart = new Date(current);
-        slotStart.setHours(slot.startHour, 0, 0, 0);
+      for (const avail of dayAvail) {
+        for (let hour = avail.startHour; hour < avail.endHour; hour++) {
+          const slotStart = new Date(current);
+          slotStart.setHours(hour, 0, 0, 0);
 
-        if (slotStart <= now) {
-          continue;
-        }
+          if (slotStart <= now) continue;
 
-        const isBooked = bookedSessions.some((s) => {
-          const sessionStart = new Date(s.scheduledAt);
-          const sessionEnd = new Date(sessionStart);
-          sessionEnd.setMinutes(sessionEnd.getMinutes() + s.durationMinutes);
-          return slotStart >= sessionStart && slotStart < sessionEnd;
-        });
-
-        if (!isBooked) {
-          slots.push({
-            date: current.toISOString().split("T")[0] as string,
-            startHour: slot.startHour,
-            endHour: slot.endHour,
+          const isBooked = bookedSessions.some((s) => {
+            const sessionStart = new Date(s.scheduledAt);
+            const sessionEnd = new Date(sessionStart);
+            sessionEnd.setMinutes(sessionEnd.getMinutes() + s.durationMinutes);
+            return slotStart >= sessionStart && slotStart < sessionEnd;
           });
+
+          if (!isBooked) {
+            const remainingInBlock = (avail.endHour - hour) * 60;
+            slots.push({
+              date: current.toISOString().split("T")[0] as string,
+              startHour: hour,
+              availableForMinutes: remainingInBlock,
+            });
+          }
         }
       }
       current.setDate(current.getDate() + 1);
@@ -163,6 +164,13 @@ export class SessionService {
 
     const sessionEnd = new Date(scheduledAt);
     sessionEnd.setMinutes(sessionEnd.getMinutes() + data.durationMinutes);
+
+    const sessionEndHour = sessionEnd.getHours() + sessionEnd.getMinutes() / 60;
+    if (sessionEndHour > availability.endHour) {
+      throw new BadRequestException(
+        `Session of ${data.durationMinutes} minutes starting at ${slotHour}:00 would run past tutor availability end at ${availability.endHour}:00`,
+      );
+    }
 
     const overlap = await this.prisma.session.findFirst({
       where: {
@@ -306,6 +314,105 @@ export class SessionService {
       type: "SESSION_COMPLETED",
       title: "Session completed",
       message: `Session on ${updated.scheduledAt.toLocaleDateString("en-GB", { day: "numeric", month: "short" })} marked as completed. Consider leaving a review!`,
+      data: { sessionId, applicationId: session.applicationId },
+    });
+
+    return updated;
+  }
+
+  async rescheduleSession(
+    sessionId: string,
+    userId: string,
+    data: { scheduledAt: string; durationMinutes?: number },
+  ) {
+    const session = await this.prisma.session.findUnique({ where: { id: sessionId } });
+    if (!session) throw new NotFoundException("Session not found");
+
+    const isStudent = session.studentId === userId;
+    const isTutor = session.tutorId === userId;
+    if (!isStudent && !isTutor) throw new ForbiddenException("Not authorized");
+
+    if (session.status === "COMPLETED" || session.status === "CANCELLED") {
+      throw new BadRequestException("Cannot reschedule a completed or cancelled session");
+    }
+
+    const newScheduledAt = new Date(data.scheduledAt);
+    if (newScheduledAt <= new Date()) throw new BadRequestException("Rescheduled time must be in the future");
+
+    const duration = data.durationMinutes ?? session.durationMinutes;
+    const ALLOWED_DURATIONS = [30, 60, 90, 120];
+    if (!ALLOWED_DURATIONS.includes(duration)) {
+      throw new BadRequestException("Duration must be 30, 60, 90, or 120 minutes");
+    }
+
+    const slotHour = newScheduledAt.getHours();
+    const slotDayOfWeek = newScheduledAt.getDay();
+
+    const availability = await this.prisma.availability.findFirst({
+      where: {
+        tutorId: session.tutorId,
+        dayOfWeek: slotDayOfWeek,
+        startHour: { lte: slotHour },
+        endHour: { gt: slotHour },
+      },
+    });
+    if (!availability) {
+      throw new BadRequestException("Rescheduled time is outside tutor's availability");
+    }
+
+    const sessionEnd = new Date(newScheduledAt);
+    sessionEnd.setMinutes(sessionEnd.getMinutes() + duration);
+    const sessionEndHour = sessionEnd.getHours() + sessionEnd.getMinutes() / 60;
+    if (sessionEndHour > availability.endHour) {
+      throw new BadRequestException(
+        `Session of ${duration} minutes starting at ${slotHour}:00 would run past tutor availability`,
+      );
+    }
+
+    const overlap = await this.prisma.session.findFirst({
+      where: {
+        tutorId: session.tutorId,
+        id: { not: sessionId },
+        status: { in: ["PENDING", "CONFIRMED"] },
+        AND: [
+          { scheduledAt: { lt: sessionEnd } },
+          { scheduledAt: { gte: new Date(newScheduledAt.getTime() - 120 * 60 * 1000) } },
+        ],
+      },
+      select: { id: true, scheduledAt: true, durationMinutes: true },
+    });
+
+    if (overlap) {
+      const overlapEnd = new Date(overlap.scheduledAt);
+      overlapEnd.setMinutes(overlapEnd.getMinutes() + overlap.durationMinutes);
+      if (newScheduledAt < overlapEnd && sessionEnd > overlap.scheduledAt) {
+        throw new BadRequestException("Rescheduled time conflicts with an existing session");
+      }
+    }
+
+    const updated = await this.prisma.session.update({
+      where: { id: sessionId },
+      data: {
+        scheduledAt: newScheduledAt,
+        durationMinutes: duration,
+        status: "PENDING",
+      },
+      include: {
+        student: { select: { name: true, email: true } },
+        tutor: { select: { name: true, email: true } },
+      },
+    });
+
+    const recipientId = isStudent ? session.tutorId : session.studentId;
+    const actorName = isStudent
+      ? (updated.student.name ?? updated.student.email)
+      : (updated.tutor.name ?? updated.tutor.email);
+
+    await this.notificationService.create({
+      userId: recipientId,
+      type: "SESSION_BOOKED",
+      title: "Session rescheduled",
+      message: `${actorName} rescheduled a session to ${newScheduledAt.toLocaleDateString("en-GB", { day: "numeric", month: "short" })} at ${slotHour}:00`,
       data: { sessionId, applicationId: session.applicationId },
     });
 
