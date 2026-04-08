@@ -26,10 +26,11 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.54.2",
+    "recharts": "^3.8.1",
     "shared-schema": "workspace:*",
+    "socket.io-client": "^4.8.1",
     "tailwind-merge": "^2.6.0",
     "zod": "^3.24.1",
-    "socket.io-client": "^4.8.1",
     "zustand": "^5.0.2"
   },
   "devDependencies": {

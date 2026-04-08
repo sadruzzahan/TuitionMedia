@@ -13,6 +13,7 @@ import { ChatModule } from "./chat/chat.module";
 import { SessionModule } from "./session/session.module";
 import { ReviewModule } from "./review/review.module";
 import { DocumentModule } from "./document/document.module";
+import { AdminModule } from "./admin/admin.module";
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { DocumentModule } from "./document/document.module";
     SessionModule,
     ReviewModule,
     DocumentModule,
+    AdminModule,
   ],
   controllers: [AppController],
   providers: [AppService],
