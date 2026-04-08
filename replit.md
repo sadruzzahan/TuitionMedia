@@ -60,6 +60,15 @@ bash start.sh
 - Payment via bKash / Nagad (OTP demo mode implemented)
 - Contact info revealed only after both parties have paid
 
+## Application Status Flow & Chat Access
+- `PENDING` — tutor applied, awaiting student action
+- `ACCEPTED` — student accepted, student has paid ৳500
+- `BOTH_PAID` — both student and tutor have paid (this is the practical "connected" state; chat is enabled)
+- `CONNECTED` — alternative connected state (also enables chat)
+- `REJECTED` / `CANCELLED` — application terminated
+- Chat authorization uses **application-scoped** status only: `BOTH_PAID` or `CONNECTED`
+  - Request-level `contact_unlocked` is intentionally excluded from chat auth to prevent rejected tutors from accessing chat on the same request
+
 ## Bangladesh Localisation
 - Currency: BDT (৳)
 - Location: 8 divisions + areas
