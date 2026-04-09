@@ -35,6 +35,7 @@ import { cn } from "@/lib/utils";
 type TutorCard = {
   id: string;
   name: string | null;
+  avatarUrl: string | null;
   bio: string | null;
   subjects: string[];
   hourlyRate: number;
@@ -118,9 +119,17 @@ function TutorCardUI({ tutor, index, featured = false }: { tutor: TutorCard; ind
         )}>
           <CardHeader className="pb-3">
             <div className="flex items-start gap-3">
-              <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-sm font-bold ${color}`}>
-                {initials}
-              </div>
+              {tutor.avatarUrl ? (
+                <img
+                  src={tutor.avatarUrl}
+                  alt={tutor.name ?? "Tutor"}
+                  className="h-12 w-12 shrink-0 rounded-xl object-cover"
+                />
+              ) : (
+                <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-sm font-bold ${color}`}>
+                  {initials}
+                </div>
+              )}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <h3 className="font-semibold text-sm group-hover:text-cyan-400 transition-colors">

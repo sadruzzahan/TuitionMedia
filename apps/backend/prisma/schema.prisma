@@ -12,6 +12,7 @@ model User {
   email                String           @unique
   name                 String?
   phone                String?          @unique
+  avatar_url           String?
   password_hash        String           @map("password_hash")
   role                 UserRole         @default(STUDENT)
   is_verified          Boolean          @default(false)

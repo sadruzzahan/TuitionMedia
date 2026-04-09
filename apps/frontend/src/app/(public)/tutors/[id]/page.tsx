@@ -31,6 +31,7 @@ type RatingBreakdown = {
 type TutorProfileData = {
   id: string;
   name: string | null;
+  avatarUrl: string | null;
   bio: string | null;
   subjects: string[];
   hourlyRate: number;
@@ -225,9 +226,17 @@ export default async function TutorProfilePage({ params, searchParams }: { param
           <Card className="glass-card mb-6">
             <CardContent className="pt-6">
               <div className="flex flex-col sm:flex-row gap-6">
-                <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-cyan-500/20 text-2xl font-bold text-cyan-400 mx-auto sm:mx-0">
-                  {getInitials(tutor.name)}
-                </div>
+                {tutor.avatarUrl ? (
+                  <img
+                    src={tutor.avatarUrl}
+                    alt={tutor.name ?? "Tutor"}
+                    className="h-20 w-20 shrink-0 rounded-2xl object-cover mx-auto sm:mx-0"
+                  />
+                ) : (
+                  <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-cyan-500/20 text-2xl font-bold text-cyan-400 mx-auto sm:mx-0">
+                    {getInitials(tutor.name)}
+                  </div>
+                )}
                 <div className="flex-1 text-center sm:text-left">
                   <div className="flex items-center gap-2 justify-center sm:justify-start flex-wrap">
                     <h1 className="text-2xl font-bold">{tutor.name ?? "Tutor"}</h1>

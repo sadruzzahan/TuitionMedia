@@ -33,6 +33,7 @@ import { BANGLADESH_SUBJECTS, BANGLADESH_DIVISIONS } from "@/lib/bangladesh-data
 type TutorCard = {
   id: string;
   name: string | null;
+  avatarUrl: string | null;
   bio: string | null;
   subjects: string[];
   hourlyRate: number;
@@ -462,9 +463,17 @@ export default function LandingPage() {
                       <Link href={`/tutors/${tutor.id}`}>
                         <div className={`glass-card rounded-2xl p-5 h-full transition-all ${tutor.isPremium ? "hover:border-amber-500/30" : "hover:border-cyan-500/30"}`}>
                           <div className="flex items-start gap-3 mb-3">
-                            <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-sm font-bold ${color}`}>
-                              {initials}
-                            </div>
+                            {tutor.avatarUrl ? (
+                              <img
+                                src={tutor.avatarUrl}
+                                alt={tutor.name ?? "Tutor"}
+                                className="h-11 w-11 shrink-0 rounded-xl object-cover"
+                              />
+                            ) : (
+                              <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-sm font-bold ${color}`}>
+                                {initials}
+                              </div>
+                            )}
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-1.5 flex-wrap">
                                 <span className="font-semibold text-sm">{tutor.name ?? "Tutor"}</span>

@@ -92,7 +92,7 @@ export class TutorDiscoveryService {
       this.prisma.tutorProfile.findMany({
         where: featuredWhere,
         include: {
-          user: { select: { id: true, name: true, is_verified: true } },
+          user: { select: { id: true, name: true, is_verified: true, avatar_url: true } },
         },
         orderBy,
         take: 6,
@@ -100,7 +100,7 @@ export class TutorDiscoveryService {
       this.prisma.tutorProfile.findMany({
         where: regularWhere,
         include: {
-          user: { select: { id: true, name: true, is_verified: true } },
+          user: { select: { id: true, name: true, is_verified: true, avatar_url: true } },
         },
         orderBy,
         skip,
@@ -111,6 +111,7 @@ export class TutorDiscoveryService {
     const mapTutor = (t: typeof regularTutors[0]) => ({
       id: t.user_id,
       name: t.user.name,
+      avatarUrl: t.user.avatar_url,
       bio: t.bio ? t.bio.slice(0, 120) + (t.bio.length > 120 ? "..." : "") : null,
       subjects: t.subjects,
       hourlyRate: Number(t.hourly_rate),
@@ -147,6 +148,7 @@ export class TutorDiscoveryService {
             name: true,
             email: true,
             phone: true,
+            avatar_url: true,
             is_verified: true,
             created_at: true,
           },
@@ -196,6 +198,7 @@ export class TutorDiscoveryService {
     return {
       id: profile.user_id,
       name: profile.user.name,
+      avatarUrl: profile.user.avatar_url,
       bio: profile.bio,
       subjects: profile.subjects,
       hourlyRate: Number(profile.hourly_rate),
