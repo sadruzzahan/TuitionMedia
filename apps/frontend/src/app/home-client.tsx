@@ -29,6 +29,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { BANGLADESH_SUBJECTS, BANGLADESH_DIVISIONS } from "@/lib/bangladesh-data";
+import { PublicNav } from "@/components/public-nav";
 
 type TutorCard = {
   id: string;
@@ -258,44 +259,11 @@ export default function LandingPage() {
         transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
       />
 
-      {/* ── HEADER ── */}
-      <header className="fixed top-0 left-0 right-0 z-50 glass-card border-b border-white/10">
-        <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5 }}
-            className="flex items-center gap-2"
-          >
-            <GraduationCap className="h-8 w-8 text-cyan-400" />
-            <span className="text-xl font-bold tracking-tight">TuitionMedia</span>
-          </motion.div>
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="flex items-center gap-4"
-          >
-            <Link href="/tutors" className="text-sm text-muted-foreground hover:text-foreground transition-colors hidden sm:block">Browse Tutors</Link>
-            <Link href="/how-it-works" className="text-sm text-muted-foreground hover:text-foreground transition-colors hidden sm:block">How It Works</Link>
-            <Link href="/pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors hidden sm:block">Pricing</Link>
-            <Link href="/login">
-              <Button variant="ghost" className="text-muted-foreground hover:text-foreground hidden sm:inline-flex">
-                Log in
-              </Button>
-            </Link>
-            <Link href="/signup">
-              <Button variant="gradient" className="shadow-cyan-500/20">
-                Get Started
-              </Button>
-            </Link>
-          </motion.div>
-        </nav>
-      </header>
+      <PublicNav />
 
       <main className="relative">
         {/* ── HERO ── */}
-        <section className="pt-32 pb-16 px-6">
+        <section className="pt-28 pb-16 px-6">
           <div className="mx-auto max-w-7xl">
             <motion.div
               initial={{ opacity: 0, y: 30 }}

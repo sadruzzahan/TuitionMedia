@@ -112,6 +112,19 @@ bash start.sh
 - [ ] Task #5: Reviews, Ratings & Verification
 - [ ] Task #6: Admin Dashboard & Platform Analytics
 
+## UI Design System
+- **Color**: Dark background `hsl(220, 30%, 5%)`, cyan/teal gradient primary
+- **Glass morphism**: `.glass`, `.glass-card`, `.glass-dark` utility classes in globals.css
+- **Glow effects**: `.glow-cyan`, `.glow-cyan-sm`, `.glow-amber`
+- **Text gradients**: `.text-gradient` (cyan→teal→emerald), `.text-gradient-warm`, `.text-gradient-cool`
+- **Animations**: `.animate-float`, `.animate-pulse-glow`, `.animate-fade-up`, `.animate-blob`
+- **Bottom floating navbar**:
+  - Dashboard: cyan theme, `layoutId="nav-active-pill"`, fixed at `bottom-5`
+  - Admin: amber theme, `layoutId="admin-nav-active"`, fixed at `bottom-5`
+  - Both use `pb-28` on main content to clear the nav
+- **Public nav** (`components/public-nav.tsx`): scroll-aware (transparent → backdrop-blur), animated active pill with `layoutId="nav-indicator"`, mobile slide-down drawer
+- **Home page** uses shared `PublicNav` component (not custom header)
+
 ## SSR Notes (Next.js 15 + React 19)
 - `(dashboard)/layout.tsx` is a server component with `export const dynamic = 'force-dynamic'` to prevent zustand/motion prerender crashes
 - `(public)/layout.tsx` has `export const dynamic = 'force-dynamic'` for the same reason
