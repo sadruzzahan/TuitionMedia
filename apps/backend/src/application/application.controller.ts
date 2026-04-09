@@ -11,19 +11,17 @@ interface JwtUser { id: string; email: string; role: UserRole }
 
 @Controller("applications")
 export class ApplicationController {
-  constructor(
-    private readonly service: ApplicationService,
-  ) {}
+  constructor(private readonly service: ApplicationService) {}
 
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles("TUTOR")
   @UsePipes(new ZodValidationPipe(CreateApplicationSchema))
   create(
-    @Body() body: { requestId: string; coverLetter: string },
+    @Body() body: { requestId: string; coverLetter: string; proposedRate?: number },
     @Req() req: { user: JwtUser },
   ) {
-    return this.service.create(body.requestId, req.user.id, body.coverLetter);
+    return this.service.create(body.requestId, req.user.id, body.coverLetter, body.proposedRate);
   }
 
   @Get("request/:requestId")
@@ -43,38 +41,37 @@ export class ApplicationController {
     return this.service.findByTutor(req.user.id);
   }
 
-  // Student accepts an application - requires payment
+  /** Student accepts application — trial starts immediately, no payment */
   @Post(":id/accept")
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles("STUDENT")
-  async accept(
+  accept(
     @Param("id") id: string,
     @Req() req: { user: JwtUser },
   ) {
-    // This now returns payment requirement info
-    return this.service.acceptWithPaymentRequirement(id, req.user.id);
+    return this.service.accept(id, req.user.id);
   }
 
-  // Confirm acceptance after payment
-  @Post(":id/confirm-acceptance")
+  /** Student marks trial as "Guardian Approved" — triggers tutor finder fee */
+  @Post(":id/approve-trial")
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles("STUDENT")
-  async confirmAcceptance(
+  approveTrial(
     @Param("id") id: string,
     @Req() req: { user: JwtUser },
   ) {
-    return this.service.confirmAcceptance(id, req.user.id);
+    return this.service.approveTrialStudent(id, req.user.id);
   }
 
-  // Tutor confirms after student paid - requires tutor payment
+  /** Tutor: get finder fee requirement after trial approved */
   @Post(":id/tutor-confirm")
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles("TUTOR")
-  async tutorConfirm(
+  tutorConfirm(
     @Param("id") id: string,
     @Req() req: { user: JwtUser },
   ) {
-    return this.service.tutorConfirmWithPaymentRequirement(id, req.user.id);
+    return this.service.getTutorFinderFeeRequirement(id, req.user.id);
   }
 
   @Post(":id/reject")
@@ -87,10 +84,9 @@ export class ApplicationController {
     return this.service.reject(id, req.user.id);
   }
 
-  // Check payment status for an application
   @Get(":id/payment-status")
   @UseGuards(JwtAuthGuard)
-  async getPaymentStatus(
+  getPaymentStatus(
     @Param("id") id: string,
     @Req() req: { user: JwtUser },
   ) {

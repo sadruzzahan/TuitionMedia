@@ -4,8 +4,14 @@ import { PaymentStatus, PaymentMethod, ApplicationStatus } from "@prisma/client"
 import { randomInt } from "crypto";
 import { NotificationService } from "../notification/notification.service";
 
-const PLATFORM_FEE = 500;
+const MINIMUM_FEE = 300;
+const FINDER_FEE_RATE = 0.5;
 const OTP_EXPIRY_MINUTES = 5;
+
+function calcFinderFee(proposedRate: number | null): number {
+  if (!proposedRate || proposedRate <= 0) return MINIMUM_FEE;
+  return Math.max(Math.round(proposedRate * FINDER_FEE_RATE), MINIMUM_FEE);
+}
 
 @Injectable()
 export class PaymentService {
@@ -14,81 +20,17 @@ export class PaymentService {
     private notificationService: NotificationService,
   ) {}
 
-  // Generate 6-digit OTP
   private generateOTP(): string {
     return randomInt(100000, 999999).toString();
   }
 
-  // Initiate payment for student accepting an application
-  async initiateStudentPayment(
+  /**
+   * Tutor initiates payment of finder's fee after trial is approved.
+   * Amount = 50% of their proposed monthly rate (min ৳300).
+   */
+  async initiateTutorFinderFeePayment(
     applicationId: string,
-    userId: string,
-    phoneNumber: string,
-    method: PaymentMethod,
-  ) {
-    // Get application and verify it exists
-    const application = await this.prisma.application.findUnique({
-      where: { id: applicationId },
-      include: { request: true },
-    });
-
-    if (!application) {
-      throw new NotFoundException("Application not found");
-    }
-
-    // For student payment, allow from PENDING status
-    if (application.status !== "PENDING") {
-      throw new BadRequestException("Application is not available for payment");
-    }
-
-    // Check if payment already exists
-    const existingPayment = await this.prisma.payment.findFirst({
-      where: {
-        applicationId,
-        userId,
-        status: { in: [PaymentStatus.PENDING, PaymentStatus.OTP_SENT, PaymentStatus.VERIFIED] },
-      },
-    });
-
-    if (existingPayment) {
-      throw new BadRequestException("Payment already initiated for this application");
-    }
-
-    // Create payment and generate OTP
-    const otp = this.generateOTP();
-    const otpExpiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
-
-    const payment = await this.prisma.payment.create({
-      data: {
-        applicationId,
-        requestId: application.requestId,
-        userId,
-        amount: PLATFORM_FEE,
-        method,
-        phoneNumber,
-        otpCode: otp,
-        otpExpiresAt,
-        status: PaymentStatus.OTP_SENT,
-      },
-    });
-
-    // Send OTP via SMS API
-    console.log(`OTP sent to ${phoneNumber}: ${otp}`);
-
-    return {
-      id: payment.id,
-      amount: PLATFORM_FEE,
-      method,
-      phoneNumber,
-      otpSent: true,
-      message: `OTP sent to ${phoneNumber}. Enter the OTP to verify payment.`,
-    };
-  }
-
-  // Initiate payment for tutor (when student has paid and tutor accepts)
-  async initiateTutorPayment(
-    applicationId: string,
-    userId: string,
+    tutorId: string,
     phoneNumber: string,
     method: PaymentMethod,
   ) {
@@ -97,35 +39,29 @@ export class PaymentService {
       include: { request: true },
     });
 
-    if (!application) {
-      throw new NotFoundException("Application not found");
+    if (!application) throw new NotFoundException("Application not found");
+    if (application.tutorId !== tutorId) throw new BadRequestException("Not authorized");
+
+    const allowed: ApplicationStatus[] = ["TRIAL_APPROVED", "BOTH_PAID", "CONNECTED"];
+    if (!allowed.includes(application.status)) {
+      throw new BadRequestException("The student must approve the trial before you can pay");
     }
 
-    // Verify student has already paid
-    const studentPayment = await this.prisma.payment.findFirst({
-      where: {
-        applicationId,
-        status: PaymentStatus.VERIFIED,
-      },
-    });
-
-    if (!studentPayment) {
-      throw new BadRequestException("Student must complete payment first");
-    }
-
-    // Check if tutor already paid
     const existingPayment = await this.prisma.payment.findFirst({
       where: {
         applicationId,
-        userId,
+        userId: tutorId,
         status: { in: [PaymentStatus.PENDING, PaymentStatus.OTP_SENT, PaymentStatus.VERIFIED] },
       },
     });
-
     if (existingPayment) {
-      throw new BadRequestException("Payment already initiated");
+      if (existingPayment.status === PaymentStatus.VERIFIED) {
+        throw new BadRequestException("You have already paid the finder's fee");
+      }
+      throw new BadRequestException("Payment already initiated. Please verify the OTP.");
     }
 
+    const finderFee = Number(application.finder_fee ?? calcFinderFee(Number(application.proposed_rate ?? 0)));
     const otp = this.generateOTP();
     const otpExpiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
 
@@ -133,8 +69,8 @@ export class PaymentService {
       data: {
         applicationId,
         requestId: application.requestId,
-        userId,
-        amount: PLATFORM_FEE,
+        userId: tutorId,
+        amount: finderFee,
         method,
         phoneNumber,
         otpCode: otp,
@@ -143,36 +79,28 @@ export class PaymentService {
       },
     });
 
-    console.log(`OTP sent to ${phoneNumber}: ${otp}`);
+    console.log(`[DEMO OTP] ${phoneNumber}: ${otp}`);
 
     return {
       id: payment.id,
-      amount: PLATFORM_FEE,
+      amount: finderFee,
       method,
       phoneNumber,
       otpSent: true,
-      message: `OTP sent to ${phoneNumber}. Enter the OTP to verify payment.`,
+      demoOtp: otp,
+      message: `OTP sent to ${phoneNumber}. Enter the OTP to confirm your ৳${finderFee} finder's fee.`,
     };
   }
 
-  // Verify OTP and complete payment
   async verifyPayment(paymentId: string, userId: string, otp: string) {
     const payment = await this.prisma.payment.findUnique({
       where: { id: paymentId },
-      include: { application: { include: { request: true } } },
+      include: { application: { include: { request: { select: { studentId: true, title: true } } } } },
     });
 
-    if (!payment) {
-      throw new NotFoundException("Payment not found");
-    }
-
-    if (payment.userId !== userId) {
-      throw new BadRequestException("Unauthorized");
-    }
-
-    if (payment.status !== PaymentStatus.OTP_SENT) {
-      throw new BadRequestException("Invalid payment status");
-    }
+    if (!payment) throw new NotFoundException("Payment not found");
+    if (payment.userId !== userId) throw new BadRequestException("Unauthorized");
+    if (payment.status !== PaymentStatus.OTP_SENT) throw new BadRequestException("Invalid payment status");
 
     if (payment.otpExpiresAt && payment.otpExpiresAt < new Date()) {
       await this.prisma.payment.update({
@@ -182,132 +110,84 @@ export class PaymentService {
       throw new BadRequestException("OTP has expired. Please request a new one.");
     }
 
-    if (payment.otpCode !== otp) {
-      throw new BadRequestException("Invalid OTP");
-    }
+    if (payment.otpCode !== otp) throw new BadRequestException("Invalid OTP");
 
-    // Mark payment as verified
     await this.prisma.payment.update({
       where: { id: paymentId },
-      data: {
-        status: PaymentStatus.VERIFIED,
-        verifiedAt: new Date(),
-        otpCode: null, // Clear OTP for security
-      },
+      data: { status: PaymentStatus.VERIFIED, verifiedAt: new Date(), otpCode: null },
     });
 
-    // Check if both student and tutor have paid
-    const allPayments = await this.prisma.payment.findMany({
-      where: {
-        applicationId: payment.applicationId,
-        status: PaymentStatus.VERIFIED,
-      },
-    });
-
-    // If both paid (2 payments), unlock contact information and set status to BOTH_PAID
-    if (allPayments.length >= 2) {
-      const app = await this.prisma.application.findUnique({
+    await this.prisma.$transaction([
+      this.prisma.tuitionRequest.update({
+        where: { id: payment.requestId },
+        data: { contact_unlocked: true },
+      }),
+      this.prisma.application.update({
         where: { id: payment.applicationId },
-        include: { request: { select: { studentId: true, title: true } } },
-      });
+        data: { status: "BOTH_PAID" as ApplicationStatus },
+      }),
+    ]);
 
-      await this.prisma.$transaction([
-        this.prisma.tuitionRequest.update({
-          where: { id: payment.requestId },
-          data: { contact_unlocked: true },
-        }),
-        this.prisma.application.update({
-          where: { id: payment.applicationId },
-          data: { status: "BOTH_PAID" as ApplicationStatus },
-        }),
-      ]);
+    const app = payment.application;
+    const studentId = app.request.studentId;
 
-      if (app) {
-        const isStudent = app.request.studentId === payment.userId;
-        const otherId = isStudent ? app.tutorId : app.request.studentId;
+    await this.notificationService.create({
+      userId: studentId,
+      type: "PAYMENT_VERIFIED",
+      title: "Tutor paid — you're fully connected!",
+      message: "The tutor has paid their finder's fee. Contact information is now unlocked for both of you.",
+      data: { applicationId: payment.applicationId, requestId: payment.requestId },
+    });
 
-        await this.notificationService.create({
-          userId: otherId,
-          type: "PAYMENT_VERIFIED",
-          title: "Both parties connected!",
-          message: "Both fees have been paid. Contact information is now unlocked.",
-          data: { applicationId: payment.applicationId, requestId: payment.requestId },
-        });
+    await this.notificationService.create({
+      userId: payment.userId,
+      type: "PAYMENT_VERIFIED",
+      title: "Payment confirmed — contact unlocked!",
+      message: "Your finder's fee was confirmed. The student's contact info is now visible.",
+      data: { applicationId: payment.applicationId, requestId: payment.requestId },
+    });
 
-        await this.notificationService.create({
-          userId: payment.userId,
-          type: "PAYMENT_VERIFIED",
-          title: "Payment verified — you're connected!",
-          message: "Your payment was verified. Contact information is now unlocked.",
-          data: { applicationId: payment.applicationId, requestId: payment.requestId },
-        });
-      }
-    }
-
-    return {
-      success: true,
-      message: "Payment verified successfully!",
-    };
+    return { success: true, message: "Finder's fee verified. Contact information is now unlocked!" };
   }
 
-  // Resend OTP
   async resendOtp(paymentId: string, userId: string) {
-    const payment = await this.prisma.payment.findUnique({
-      where: { id: paymentId },
-    });
-
-    if (!payment) {
-      throw new NotFoundException("Payment not found");
-    }
-
-    if (payment.userId !== userId) {
-      throw new BadRequestException("Unauthorized");
-    }
-
-    if (payment.status !== PaymentStatus.OTP_SENT) {
-      throw new BadRequestException("Cannot resend OTP in current state");
-    }
+    const payment = await this.prisma.payment.findUnique({ where: { id: paymentId } });
+    if (!payment) throw new NotFoundException("Payment not found");
+    if (payment.userId !== userId) throw new BadRequestException("Unauthorized");
+    if (payment.status !== PaymentStatus.OTP_SENT) throw new BadRequestException("Cannot resend OTP in current state");
 
     const otp = this.generateOTP();
     const otpExpiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
 
     await this.prisma.payment.update({
       where: { id: paymentId },
-      data: {
-        otpCode: otp,
-        otpExpiresAt,
-      },
+      data: { otpCode: otp, otpExpiresAt },
     });
 
-    console.log(`OTP resent to ${payment.phoneNumber}: ${otp}`);
+    console.log(`[DEMO OTP RESEND] ${payment.phoneNumber}: ${otp}`);
 
-    return {
-      success: true,
-      message: `OTP resent to ${payment.phoneNumber}`,
-    };
+    return { success: true, demoOtp: otp, message: `OTP resent to ${payment.phoneNumber}` };
   }
 
-  // Get payment status
   async getPaymentStatus(applicationId: string, userId: string) {
     const payments = await this.prisma.payment.findMany({
-      where: {
-        applicationId,
-        status: PaymentStatus.VERIFIED,
-      },
+      where: { applicationId, status: PaymentStatus.VERIFIED },
     });
 
     const userPayment = await this.prisma.payment.findFirst({
-      where: {
-        applicationId,
-        userId,
-      },
+      where: { applicationId, userId },
       orderBy: { createdAt: "desc" },
     });
 
+    const app = await this.prisma.application.findUnique({
+      where: { id: applicationId },
+      select: { status: true, finder_fee: true, proposed_rate: true },
+    });
+
     return {
-      studentPaid: payments.length >= 1,
-      tutorPaid: payments.length >= 2,
-      bothPaid: payments.length >= 2,
+      tutorPaid: payments.length >= 1,
+      bothPaid: payments.length >= 1,
+      applicationStatus: app?.status,
       userPayment: userPayment
         ? {
             id: userPayment.id,
@@ -319,33 +199,20 @@ export class PaymentService {
     };
   }
 
-  // Get payment by ID
   async getPayment(paymentId: string, userId: string) {
     const payment = await this.prisma.payment.findUnique({
       where: { id: paymentId },
       include: {
         application: {
           include: {
-            request: {
-              select: {
-                title: true,
-                subjects: true,
-                division: true,
-                area: true,
-              },
-            },
+            request: { select: { title: true, subjects: true, division: true, area: true } },
           },
         },
       },
     });
 
-    if (!payment) {
-      throw new NotFoundException("Payment not found");
-    }
-
-    if (payment.userId !== userId) {
-      throw new BadRequestException("Unauthorized");
-    }
+    if (!payment) throw new NotFoundException("Payment not found");
+    if (payment.userId !== userId) throw new BadRequestException("Unauthorized");
 
     return {
       id: payment.id,

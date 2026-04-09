@@ -23,9 +23,9 @@ const STUDENT_FEATURES = [
   { text: "Browse and filter tutor profiles", included: true },
   { text: "Review cover letters for free", included: true },
   { text: "Accept or reject applications freely", included: true },
-  { text: "৳500 one-time connection fee (per match)", included: true },
-  { text: "Contact info revealed after payment", included: true },
-  { text: "No monthly subscription required", included: true },
+  { text: "Free trial period — no upfront cost", included: true },
+  { text: "Approve after trial to confirm the match", included: true },
+  { text: "No payment ever — students pay ৳0", included: true },
 ];
 
 const TUTOR_FREE_FEATURES = [
@@ -33,15 +33,15 @@ const TUTOR_FREE_FEATURES = [
   { text: "Apply to unlimited requests", included: true },
   { text: "Write cover letters for free", included: true },
   { text: "Build a public tutor profile", included: true },
-  { text: "৳500 per successful connection", included: true },
-  { text: "Student contact info after payment", included: true },
-  { text: "Standard visibility in search", included: true },
+  { text: "Free trial — no payment until approval", included: true },
+  { text: "Finder's fee: 50% of monthly rate (min ৳300)", included: true },
+  { text: "Student contact info after fee payment", included: true },
   { text: "No monthly fee", included: true },
 ];
 
 const TUTOR_PREMIUM_FEATURES = [
   { text: "Everything in Free", included: true },
-  { text: "Unlimited connections (no per-match fee)", included: true },
+  { text: "Reduced finder's fee: 30% of monthly rate", included: true },
   { text: "Priority listing in search results", included: true },
   { text: "Verified badge on your profile", included: true },
   { text: "Advanced analytics on applications", included: true },
@@ -65,7 +65,7 @@ const COMPARISON = [
   },
   {
     feature: "Contact info",
-    tuitionmedia: "৳500 flat or ৳500/mo Premium",
+    tuitionmedia: "Tutor pays finder's fee after trial",
     hometutorbd: "Monthly subscription",
     bdtutors: "Manual contact",
   },
@@ -97,8 +97,16 @@ const COMPARISON = [
 
 const FAQS = [
   {
-    q: "Is the ৳500 connection fee refundable?",
-    a: "The connection fee is non-refundable once both parties have paid and contact details are exchanged. If a student pays but the tutor does not confirm within 48 hours, you can request a review from our support team.",
+    q: "Do students have to pay anything?",
+    a: "No. Students pay absolutely nothing on TuitionMedia. Posting requests, reviewing applications, starting trials, and approving tutors are all free. The finder's fee is paid only by the tutor.",
+  },
+  {
+    q: "How is the tutor finder's fee calculated?",
+    a: "The finder's fee is 50% of the tutor's proposed monthly rate, with a minimum of ৳300. For example: if a tutor proposes ৳2,000/month, they pay ৳1,000 as a finder's fee after trial approval.",
+  },
+  {
+    q: "When does the tutor pay the finder's fee?",
+    a: "Only after the student/guardian explicitly approves the trial classes. The tutor conducts trial classes for free, and only pays once the guardian is satisfied and clicks 'Guardian Approved'. Zero upfront cost.",
   },
   {
     q: "Can I post multiple tuition requests as a student?",
@@ -106,27 +114,19 @@ const FAQS = [
   },
   {
     q: "What's the difference between Free and Premium for tutors?",
-    a: "With the Free plan, you pay ৳500 per successful match. With Premium (৳500/month), all connection fees are waived — ideal for tutors who make 2+ matches per month. Premium also includes priority listing and a verified badge.",
+    a: "With the Free plan, you pay a finder's fee (50% of monthly rate, min ৳300) per successful match. With Premium, the finder's fee is reduced to 30%. Premium also includes priority listing and a verified badge.",
   },
   {
     q: "What payment methods are supported?",
-    a: "We support bKash and Nagad for all payments — connection fees and Premium subscriptions. Only a mobile number and OTP are required; no card needed.",
+    a: "We support bKash and Nagad. Only a mobile number and OTP are required — no card needed.",
   },
   {
     q: "Can I apply to many requests without paying?",
-    a: "Absolutely. Applying to requests is always free. You only pay (either ৳500 per match or your monthly Premium fee) when a student accepts your application and you choose to unlock their contact info.",
+    a: "Absolutely. Applying is always free. You only pay the finder's fee after a student accepts you, you conduct trial classes, and the guardian approves — which means no financial risk during the trial.",
   },
   {
     q: "How do students know a tutor is verified?",
-    a: "Tutors with a 'Verified' badge have had their academic qualifications reviewed by our team. Premium tutors receive this badge automatically. Free tutors can apply for verification separately.",
-  },
-  {
-    q: "Can I switch between Free and Premium?",
-    a: "Yes. You can upgrade to Premium at any time and downgrade at the end of a billing cycle. Any remaining connections from the Premium period remain accessible.",
-  },
-  {
-    q: "Is there a free trial for Premium?",
-    a: "We occasionally offer trial periods for Premium. Watch for promotions in your dashboard. You can also use the Free plan indefinitely with no expiry.",
+    a: "Tutors with a 'Verified' badge have had their academic qualifications reviewed by our team. Always check reviews and ratings before approving a tutor.",
   },
 ];
 
@@ -210,7 +210,7 @@ export default function PricingPage() {
                   <span className="text-muted-foreground">to start</span>
                 </div>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  + <span className="text-cyan-400 font-medium">৳500 one-time</span> per accepted tutor
+                  Students pay <span className="text-cyan-400 font-medium">৳0</span> — always free
                 </p>
               </div>
 
@@ -256,7 +256,7 @@ export default function PricingPage() {
                   <span className="text-muted-foreground">to browse</span>
                 </div>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  + <span className="text-teal-400 font-medium">৳500</span> per successful connection
+                  + <span className="text-teal-400 font-medium">50% of rate</span> finder&apos;s fee after trial
                 </p>
               </div>
 
@@ -342,17 +342,17 @@ export default function PricingPage() {
                 <Shield className="h-6 w-6 text-violet-400" />
               </div>
               <div>
-                <h2 className="text-xl font-bold mb-2">Why the connection fee?</h2>
+                <h2 className="text-xl font-bold mb-2">Why the finder&apos;s fee?</h2>
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  A small fee is charged when a student and tutor successfully match.
-                  This is carefully designed to:
+                  A small finder&apos;s fee is charged to the tutor only after the student/guardian approves the trial.
+                  This model is carefully designed to:
                 </p>
                 <ul className="mt-4 space-y-2">
                   {[
-                    "Filter out spam, time-wasters, and fake requests",
-                    "Ensure both parties are serious about the tutoring arrangement",
+                    "Eliminate upfront risk — no payment until the fit is confirmed",
+                    "Students pay ৳0, making it genuinely accessible for all families",
+                    "Filter out spam tutors who aren't committed to quality",
                     "Fund platform development, support, and tutor verification",
-                    "Keep the platform free of mandatory upfront fees for everyone",
                   ].map((item) => (
                     <li key={item} className="flex items-center gap-2 text-sm">
                       <Zap className="h-3.5 w-3.5 text-violet-400 shrink-0" />

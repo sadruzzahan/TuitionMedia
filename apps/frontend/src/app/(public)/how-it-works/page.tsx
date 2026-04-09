@@ -23,7 +23,7 @@ const STUDENT_STEPS = [
     icon: FileText,
     title: "Post Your Request",
     bangla: "রিকোয়েস্ট পোস্ট করুন",
-    desc: "Fill in what subject you need help with, your education level, location (division & area), budget, and preferred class mode (home/online/coaching center). It takes under 2 minutes.",
+    desc: "Fill in what subject you need help with, your education level, location (division & area), budget, and preferred class mode. It takes under 2 minutes.",
     tip: "The more detail you add, the better-matched tutors will apply.",
     color: "cyan",
   },
@@ -31,32 +31,32 @@ const STUDENT_STEPS = [
     icon: Users,
     title: "Receive Applications",
     bangla: "আবেদন পাবেন",
-    desc: "Qualified tutors browse your request and apply with a personalised cover letter. You can see how many people have applied and review each application at your own pace.",
+    desc: "Qualified tutors browse your request and apply with a personalised cover letter and their proposed monthly rate. Review each application at your own pace.",
     tip: "No pressure — applications stay open until you close the request.",
     color: "teal",
   },
   {
     icon: CheckCircle2,
-    title: "Accept Your Tutor",
-    bangla: "টিউটর বাছাই করুন",
-    desc: "Review each tutor's cover letter. When you find the right one, click Accept. You'll be prompted to pay the ৳500 platform connection fee via bKash or Nagad.",
-    tip: "You can reject applications before accepting to keep your inbox clean.",
+    title: "Accept & Start Trial — Free",
+    bangla: "ট্রায়াল শুরু করুন — বিনামূল্যে",
+    desc: "Click 'Accept (Free Trial)' on the tutor you like. The trial period starts immediately — no payment needed. Chat with the tutor and arrange a few trial classes to see if it's a good fit.",
+    tip: "You can reject other applications to keep your inbox tidy.",
     color: "emerald",
   },
   {
-    icon: CreditCard,
-    title: "Pay ৳500 Connection Fee",
-    bangla: "৳৫০০ পেমেন্ট করুন",
-    desc: "Pay the one-time ৳500 fee using bKash or Nagad. Enter your mobile number and confirm the OTP sent to you. This fee is what keeps the platform high-quality and spam-free.",
-    tip: "The fee is non-refundable once both parties have paid.",
+    icon: Star,
+    title: "Guardian Approves the Trial",
+    bangla: "অভিভাবক অনুমোদন দিন",
+    desc: "After trying a few classes, if the guardian/student is satisfied, click 'Guardian Approved'. This notifies the tutor that the match is confirmed and it's time to pay.",
+    tip: "Only approve when you're genuinely happy — this step is final.",
     color: "blue",
   },
   {
     icon: Phone,
-    title: "Get Connected",
+    title: "Tutor Pays — You Get Connected",
     bangla: "কানেক্ট হন",
-    desc: "Once the tutor also pays their ৳500 fee, both of your contact details are revealed. You'll see their phone number and email — reach out and start scheduling sessions!",
-    tip: "Most tutors respond within a few hours.",
+    desc: "The tutor pays a small finder's fee (50% of the proposed monthly rate) after your approval. Once done, both your contact details are revealed and you can start proper sessions!",
+    tip: "Students pay nothing. The finder's fee is on the tutor only.",
     color: "violet",
   },
 ];
@@ -66,7 +66,7 @@ const TUTOR_STEPS = [
     icon: GraduationCap,
     title: "Complete Your Profile",
     bangla: "প্রোফাইল সম্পন্ন করুন",
-    desc: "Add your qualifications, subjects you teach, years of experience, hourly rate, and location. A complete profile gets significantly more applications accepted.",
+    desc: "Add your qualifications, subjects, experience, and location. A complete profile gets significantly more applications accepted.",
     tip: "Upload your academic certificates to stand out.",
     color: "emerald",
   },
@@ -74,7 +74,7 @@ const TUTOR_STEPS = [
     icon: BookOpen,
     title: "Browse Open Requests",
     bangla: "রিকোয়েস্ট দেখুন",
-    desc: "Go to the Job Board to see all open tuition requests. Filter by subject or search by keyword. See the student's level, location, budget, and what they're looking for.",
+    desc: "Go to the Job Board to see all open tuition requests. Filter by subject or location. See the student's level, budget, and what they're looking for.",
     tip: "Check the Job Board daily — new requests are posted frequently.",
     color: "cyan",
   },
@@ -82,40 +82,44 @@ const TUTOR_STEPS = [
     icon: MessageSquare,
     title: "Apply With a Cover Letter",
     bangla: "আবেদন করুন",
-    desc: "Click on a request that suits you and write a cover letter. Introduce yourself, explain your teaching approach, and why you're a great fit. Make it personal — it matters!",
+    desc: "Write a personalised cover letter and propose your monthly rate. No fee to apply — your application is completely free.",
     tip: "Personalised cover letters get accepted 3× more than generic ones.",
     color: "teal",
   },
   {
     icon: Star,
-    title: "Student Accepts You",
-    bangla: "স্টুডেন্ট অ্যাকসেপ্ট করবে",
-    desc: "If the student chooses you, your application status changes to 'Student Paid'. You'll be notified. Now it's your turn to confirm the connection.",
+    title: "Student Accepts → Trial Starts",
+    bangla: "ট্রায়াল শুরু",
+    desc: "If a student accepts your application, the trial period begins immediately. You can chat with them and arrange a few trial classes. No money changes hands yet.",
     tip: "Respond promptly — students appreciate fast, professional tutors.",
     color: "yellow",
   },
   {
     icon: CreditCard,
-    title: "Pay ৳500 & Unlock Contact",
-    bangla: "৳৫০০ পেমেন্ট করে কানেক্ট হন",
-    desc: "Pay your ৳500 connection fee via bKash or Nagad. Once confirmed, the student's phone number and email are revealed instantly. Contact them and start teaching!",
-    tip: "This small fee filters out time-wasters for both sides.",
+    title: "Pay Finder's Fee After Approval",
+    bangla: "অনুমোদনের পরে ফি দিন",
+    desc: "Once the student/guardian approves the trial, you pay a finder's fee equal to 50% of your proposed monthly rate (minimum ৳300). This unlocks the student's contact info instantly.",
+    tip: "You only pay after the guardian is satisfied — zero risk during the trial.",
     color: "violet",
   },
 ];
 
 const FAQS = [
   {
-    q: "Is the ৳500 fee refundable?",
-    a: "The fee is non-refundable once both parties have paid and contact details are exchanged. However, if a student pays but the tutor does not confirm within 48 hours, you may request a review.",
+    q: "Do students have to pay anything?",
+    a: "No. Students post requests, review applications, start trials, and approve tutors — all for free. The finder's fee is paid by the tutor only, after the trial is approved.",
+  },
+  {
+    q: "How is the finder's fee calculated?",
+    a: "It's 50% of the tutor's proposed monthly rate, with a minimum of ৳300. For example, if a tutor proposes ৳2,000/month, the finder's fee is ৳1,000.",
   },
   {
     q: "Can I post multiple tuition requests?",
     a: "Yes! Students can post unlimited tuition requests. You can have multiple open requests for different subjects at the same time.",
   },
   {
-    q: "What if I apply to many requests — do I pay for each?",
-    a: "No. Applying is completely free. You only pay the ৳500 fee when a student accepts your application and you choose to confirm the connection.",
+    q: "Is the finder's fee refundable?",
+    a: "The finder's fee is non-refundable once paid and contact details are exchanged. However, you only pay after the student/guardian has explicitly approved the trial, so it's low-risk.",
   },
   {
     q: "How do I know a tutor is qualified?",
@@ -162,7 +166,7 @@ export default function HowItWorksPage() {
             <h1 className="mt-3 text-5xl font-bold">কীভাবে কাজ করে?</h1>
             <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
               A simple, transparent process designed so that only serious students and tutors connect.
-              No monthly fees — just a flat ৳500 when you find your match.
+              Students pay nothing. Tutors pay a finder&apos;s fee only after the guardian approves the trial.
             </p>
           </motion.div>
 

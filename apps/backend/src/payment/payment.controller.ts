@@ -24,34 +24,7 @@ interface JwtUser {
 export class PaymentController {
   constructor(private readonly paymentService: PaymentService) {}
 
-  // Student initiates payment after accepting an application
-  @Post("student/:applicationId")
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles("STUDENT", "ADMIN")
-  async initiateStudentPayment(
-    @Param("applicationId") applicationId: string,
-    @Req() req: { user: JwtUser },
-    @Body() body: { phoneNumber: string; method: PaymentMethod },
-  ) {
-    if (!body.phoneNumber || !body.method) {
-      throw new BadRequestException("Phone number and payment method are required");
-    }
-
-    // Validate phone number format (Bangladesh)
-    const phoneRegex = /^01[3-9]\d{8}$/;
-    if (!phoneRegex.test(body.phoneNumber)) {
-      throw new BadRequestException("Invalid Bangladesh phone number format");
-    }
-
-    return this.paymentService.initiateStudentPayment(
-      applicationId,
-      req.user.id,
-      body.phoneNumber,
-      body.method,
-    );
-  }
-
-  // Tutor initiates payment after student has paid
+  /** Tutor pays finder's fee (50% of monthly rate) after trial approved */
   @Post("tutor/:applicationId")
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles("TUTOR", "ADMIN")
@@ -63,13 +36,11 @@ export class PaymentController {
     if (!body.phoneNumber || !body.method) {
       throw new BadRequestException("Phone number and payment method are required");
     }
-
     const phoneRegex = /^01[3-9]\d{8}$/;
     if (!phoneRegex.test(body.phoneNumber)) {
       throw new BadRequestException("Invalid Bangladesh phone number format");
     }
-
-    return this.paymentService.initiateTutorPayment(
+    return this.paymentService.initiateTutorFinderFeePayment(
       applicationId,
       req.user.id,
       body.phoneNumber,
@@ -77,7 +48,14 @@ export class PaymentController {
     );
   }
 
-  // Verify OTP
+  /** Legacy student endpoint — redirects to tutor logic for backward compat */
+  @Post("student/:applicationId")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("STUDENT", "ADMIN")
+  async initiateStudentPayment() {
+    throw new BadRequestException("Students no longer pay a connection fee. Accept a tutor to start the trial period for free.");
+  }
+
   @Post(":paymentId/verify")
   @UseGuards(JwtAuthGuard)
   async verifyPayment(
@@ -88,11 +66,9 @@ export class PaymentController {
     if (!body.otp || !/^\d{6}$/.test(body.otp)) {
       throw new BadRequestException("Invalid OTP format. Must be 6 digits.");
     }
-
     return this.paymentService.verifyPayment(paymentId, req.user.id, body.otp);
   }
 
-  // Resend OTP
   @Post(":paymentId/resend-otp")
   @UseGuards(JwtAuthGuard)
   async resendOtp(
@@ -102,7 +78,6 @@ export class PaymentController {
     return this.paymentService.resendOtp(paymentId, req.user.id);
   }
 
-  // Get payment status for an application
   @Get("status/:applicationId")
   @UseGuards(JwtAuthGuard)
   async getPaymentStatus(
@@ -112,7 +87,6 @@ export class PaymentController {
     return this.paymentService.getPaymentStatus(applicationId, req.user.id);
   }
 
-  // Get payment details
   @Get(":paymentId")
   @UseGuards(JwtAuthGuard)
   async getPayment(

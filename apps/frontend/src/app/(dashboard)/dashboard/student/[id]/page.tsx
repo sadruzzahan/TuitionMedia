@@ -2,13 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { motion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 import {
   AlertCircle,
   CheckCircle2,
   XCircle,
-  CreditCard,
   Lock,
+  Unlock,
   Phone,
   Mail,
   MapPin,
@@ -18,12 +18,16 @@ import {
   ArrowLeft,
   MessageSquare,
   CalendarPlus,
+  ThumbsUp,
+  Sparkles,
+  Info,
+  CreditCard,
+  BadgeCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiGet, apiPost, apiDelete } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
-import { PaymentMethodSelector } from "@/components/payment/payment-method-selector";
 import { ChatDrawer } from "@/components/chat/chat-drawer";
 import { BookSessionDialog } from "@/components/session/book-session-dialog";
 
@@ -32,6 +36,10 @@ type Application = {
   coverLetter: string;
   status: string;
   tutorId: string;
+  proposed_rate?: number | null;
+  finder_fee?: number | null;
+  trial_started_at?: string | null;
+  trial_approved_at?: string | null;
   tutor: { id: string; email: string; name: string | null; phone: string | null };
 };
 
@@ -52,8 +60,8 @@ type TuitionRequest = {
 
 const STATUS_COLORS: Record<string, string> = {
   OPEN: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
-  ASSIGNED: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
   IN_PROGRESS: "bg-cyan-500/20 text-cyan-400 border-cyan-500/30",
+  ASSIGNED: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
   CLOSED: "bg-white/10 text-muted-foreground border-white/10",
   CANCELLED: "bg-red-500/20 text-red-400 border-red-500/30",
 };
@@ -64,6 +72,56 @@ function TutorInitials({ name, email }: { name: string | null; email: string }) 
   return parts.slice(0, 2).map((p) => (p[0] ?? "").toUpperCase()).join("");
 }
 
+function TrialStatusBanner({ app }: { app: Application }) {
+  if (app.status === "BOTH_PAID" || app.status === "CONNECTED") {
+    return (
+      <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/30 p-4">
+        <div className="flex items-center gap-2 text-emerald-400 mb-1">
+          <BadgeCheck className="h-4 w-4" />
+          <span className="text-sm font-semibold">Fully Connected</span>
+        </div>
+        <p className="text-xs text-emerald-300/70">The tutor has paid their finder&apos;s fee. Contact info is unlocked.</p>
+      </div>
+    );
+  }
+
+  if (app.status === "TRIAL_APPROVED") {
+    const fee = app.finder_fee ? Math.round(Number(app.finder_fee)) : null;
+    return (
+      <div className="rounded-xl bg-amber-500/10 border border-amber-500/30 p-4 space-y-2">
+        <div className="flex items-center gap-2 text-amber-400">
+          <CreditCard className="h-4 w-4" />
+          <span className="text-sm font-semibold">Awaiting Tutor Payment</span>
+        </div>
+        <p className="text-xs text-amber-300/70">
+          You approved the trial. The tutor has been notified to pay
+          {fee ? ` ৳${fee.toLocaleString()}` : " their"} finder&apos;s fee to unlock contact info.
+        </p>
+      </div>
+    );
+  }
+
+  if (app.status === "ACCEPTED") {
+    return (
+      <div className="rounded-xl bg-cyan-500/10 border border-cyan-500/30 p-4 space-y-3">
+        <div className="flex items-center gap-2 text-cyan-400">
+          <Sparkles className="h-4 w-4" />
+          <span className="text-sm font-semibold">Trial Period Active</span>
+        </div>
+        <p className="text-xs text-cyan-300/70">
+          Chat with your tutor to arrange trial classes. Once satisfied, click &quot;Guardian Approved&quot; to proceed.
+        </p>
+        <div className="flex items-start gap-1.5 rounded-lg bg-white/5 px-3 py-2 text-xs text-muted-foreground">
+          <Info className="h-3 w-3 mt-0.5 shrink-0" />
+          <span>No payment needed during trial. The tutor pays a finder&apos;s fee only after you approve.</span>
+        </div>
+      </div>
+    );
+  }
+
+  return null;
+}
+
 export default function RequestDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -72,12 +130,9 @@ export default function RequestDetailPage() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [accepting, setAccepting] = useState<string | null>(null);
+  const [approving, setApproving] = useState<string | null>(null);
   const [rejecting, setRejecting] = useState<string | null>(null);
   const [closing, setClosing] = useState(false);
-  const [showPayment, setShowPayment] = useState(false);
-  const [paymentApplicationId, setPaymentApplicationId] = useState<string | null>(null);
-  const [paymentAmount, setPaymentAmount] = useState(500);
-  const [currentPaymentId, setCurrentPaymentId] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [chatOpen, setChatOpen] = useState(false);
   const [chatApplicationId, setChatApplicationId] = useState<string | null>(null);
@@ -96,23 +151,12 @@ export default function RequestDetailPage() {
       .finally(() => setLoading(false));
   }, [requestId]);
 
-  async function initiateAccept(applicationId: string) {
+  async function acceptApp(applicationId: string) {
     setAccepting(applicationId);
     try {
-      const result = await apiPost<{
-        requiresPayment: boolean;
-        amount: number;
-        applicationId: string;
-      }>(`/applications/${applicationId}/accept`, {});
-
-      if (result.requiresPayment) {
-        setPaymentApplicationId(applicationId);
-        setPaymentAmount(result.amount);
-        setShowPayment(true);
-      } else {
-        toast({ title: "Application accepted!", variant: "success" });
-        await refresh();
-      }
+      await apiPost(`/applications/${applicationId}/accept`, {});
+      toast({ title: "Trial period started!", description: "Chat with your tutor to arrange trial classes.", variant: "success" });
+      await refresh();
     } catch (err) {
       toast({
         title: "Failed",
@@ -124,46 +168,26 @@ export default function RequestDetailPage() {
     }
   }
 
-  const handleInitiatePayment = async (phoneNumber: string, method: "BKASH" | "NAGAD") => {
-    if (!paymentApplicationId) throw new Error("No application selected");
-    const result = await apiPost<{ id: string }>(
-      `/payments/student/${paymentApplicationId}`,
-      { phoneNumber, method }
-    );
-    setCurrentPaymentId(result.id);
-    return result;
-  };
-
-  const handleVerifyPayment = async (otp: string) => {
-    if (!currentPaymentId) throw new Error("No payment in progress");
-    const result = await apiPost<{ success: boolean; contactUnlocked?: boolean }>(
-      `/payments/${currentPaymentId}/verify`,
-      { otp }
-    );
-    if (result.success) {
-      await apiPost(`/applications/${paymentApplicationId}/confirm-acceptance`, {});
+  async function approveTrial(applicationId: string) {
+    setApproving(applicationId);
+    try {
+      const res = await apiPost<{ finderFee: number }>(`/applications/${applicationId}/approve-trial`, {});
+      toast({
+        title: "Guardian approved!",
+        description: `The tutor has been notified to pay the ৳${res.finderFee?.toLocaleString() ?? ""} finder's fee.`,
+        variant: "success",
+      });
+      await refresh();
+    } catch (err) {
+      toast({
+        title: "Failed",
+        description: err instanceof Error ? err.message : "Could not approve",
+        variant: "destructive",
+      });
+    } finally {
+      setApproving(null);
     }
-    return result;
-  };
-
-  const handleResendOtp = async () => {
-    if (!currentPaymentId) throw new Error("No payment in progress");
-    return apiPost<{ demoOtp?: string }>(`/payments/${currentPaymentId}/resend-otp`, {});
-  };
-
-  const handlePaymentSuccess = async () => {
-    setShowPayment(false);
-    setCurrentPaymentId(null);
-    setPaymentApplicationId(null);
-    toast({ title: "Payment successful! Application accepted.", variant: "success" });
-    await refresh();
-  };
-
-  const handlePaymentCancel = () => {
-    setShowPayment(false);
-    setCurrentPaymentId(null);
-    setPaymentApplicationId(null);
-  };
+  }
 
   async function rejectApp(applicationId: string) {
     setRejecting(applicationId);
@@ -231,10 +255,12 @@ export default function RequestDetailPage() {
 
   const pendingApps = request.applications.filter((a) => a.status === "PENDING");
   const activeApp =
-    request.applications.find((a) => a.status === "BOTH_PAID") ??
-    request.applications.find((a) => a.status === "STUDENT_PAID");
-  const isOpen = request.status === "OPEN";
+    request.applications.find((a) => ["BOTH_PAID", "CONNECTED"].includes(a.status)) ??
+    request.applications.find((a) => ["TRIAL_APPROVED", "ACCEPTED"].includes(a.status));
+  const isOpen = request.status === "OPEN" || request.status === "IN_PROGRESS";
   const selectedApp = request.applications.find((a) => a.id === selected) ?? pendingApps[0] ?? null;
+
+  const chatAllowed = (status: string) => ["ACCEPTED", "TRIAL_APPROVED", "BOTH_PAID", "CONNECTED"].includes(status);
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
@@ -255,27 +281,15 @@ export default function RequestDetailPage() {
           onBooked={() => setBookSessionOpen(false)}
         />
       )}
-      {showPayment && (
-        <PaymentMethodSelector
-          amount={paymentAmount}
-          onInitiate={handleInitiatePayment}
-          onVerify={handleVerifyPayment}
-          onResendOtp={handleResendOtp}
-          onSuccess={handlePaymentSuccess}
-          onCancel={handlePaymentCancel}
-          userType="student"
-        />
-      )}
 
       <Button variant="ghost" className="mb-6 -ml-2 gap-1" onClick={() => router.back()}>
         <ArrowLeft className="h-4 w-4" /> Back
       </Button>
 
-      {/* Two-column layout */}
       <div className="grid gap-6 lg:grid-cols-5">
-        {/* LEFT COLUMN — Request details + connected tutor */}
+        {/* LEFT COLUMN */}
         <div className="space-y-5 lg:col-span-2">
-          {/* Request details card */}
+          {/* Request details */}
           <Card className="glass-card">
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between gap-3">
@@ -314,7 +328,7 @@ export default function RequestDetailPage() {
                   Posted {new Date(request.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
                 </div>
               </div>
-              {isOpen && (
+              {request.status === "OPEN" && (
                 <div className="pt-2">
                   <Button
                     variant="outline"
@@ -330,20 +344,12 @@ export default function RequestDetailPage() {
             </CardContent>
           </Card>
 
-          {/* Connected tutor card */}
+          {/* Active application / trial status */}
           {activeApp && (
-            <Card className={`border-emerald-500/30 ${activeApp.status === "BOTH_PAID" ? "bg-emerald-500/10" : "bg-emerald-500/5"}`}>
+            <Card className="glass-card border-cyan-500/20">
               <CardHeader className="pb-2">
-                <div className="flex items-center gap-2 text-emerald-400">
-                  <CheckCircle2 className="h-4 w-4" />
-                  <span className="text-sm font-semibold">
-                    {activeApp.status === "BOTH_PAID" ? "Connected!" : "Awaiting Tutor Payment"}
-                  </span>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/20 text-sm font-bold text-emerald-400">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500/20 to-violet-500/20 text-sm font-bold text-cyan-400">
                     <TutorInitials name={activeApp.tutor.name} email={activeApp.tutor.email} />
                   </div>
                   <div>
@@ -351,68 +357,120 @@ export default function RequestDetailPage() {
                     {activeApp.tutor.name && <p className="text-xs text-muted-foreground">{activeApp.tutor.email}</p>}
                   </div>
                 </div>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <TrialStatusBanner app={activeApp} />
 
+                {/* Contact info (unlocked after tutor pays) */}
                 {request.contact_unlocked ? (
                   <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-sm rounded-lg bg-white/5 px-3 py-2">
-                      <Mail className="h-3.5 w-3.5 text-muted-foreground" />
-                      {activeApp.tutor.email}
-                    </div>
-                    {activeApp.tutor.phone && (
+                    <p className="text-xs font-medium text-emerald-400 flex items-center gap-1"><Unlock className="h-3 w-3" />Contact Unlocked</p>
+                    <div className="space-y-1.5">
                       <div className="flex items-center gap-2 text-sm rounded-lg bg-white/5 px-3 py-2">
-                        <Phone className="h-3.5 w-3.5 text-muted-foreground" />
-                        {activeApp.tutor.phone}
+                        <Mail className="h-3.5 w-3.5 text-muted-foreground" />
+                        {activeApp.tutor.email}
                       </div>
-                    )}
-                    {(activeApp.status === "BOTH_PAID" || activeApp.status === "CONNECTED") && (
-                      <div className="space-y-2 mt-1">
-                        <Button
-                          variant="gradient"
-                          size="sm"
-                          className="w-full gap-2"
-                          onClick={() => {
-                            setChatApplicationId(activeApp.id);
-                            setChatRecipientName(activeApp.tutor.name ?? activeApp.tutor.email);
-                            setChatOpen(true);
-                          }}
-                        >
-                          <MessageSquare className="h-4 w-4" />
-                          Message Tutor
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="w-full gap-2 border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10"
-                          onClick={() => {
-                            setBookSessionApplicationId(activeApp.id);
-                            setBookSessionOpen(true);
-                          }}
-                        >
-                          <CalendarPlus className="h-4 w-4" />
-                          Book a Session
-                        </Button>
-                      </div>
-                    )}
+                      {activeApp.tutor.phone && (
+                        <div className="flex items-center gap-2 text-sm rounded-lg bg-white/5 px-3 py-2">
+                          <Phone className="h-3.5 w-3.5 text-muted-foreground" />
+                          {activeApp.tutor.phone}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-2 rounded-lg bg-yellow-500/10 px-3 py-2 text-yellow-400">
+                  <div className="flex items-center gap-2 rounded-lg bg-white/5 px-3 py-2 text-xs text-muted-foreground">
                     <Lock className="h-3.5 w-3.5 shrink-0" />
-                    <p className="text-xs">Waiting for tutor to complete payment</p>
+                    Contact info visible after tutor pays finder&apos;s fee
                   </div>
                 )}
+
+                {/* Actions */}
+                <div className="space-y-2">
+                  {/* Guardian Approve button — only during ACCEPTED (trial) */}
+                  {activeApp.status === "ACCEPTED" && (
+                    <Button
+                      variant="gradient"
+                      size="sm"
+                      className="w-full gap-2"
+                      onClick={() => approveTrial(activeApp.id)}
+                      disabled={!!approving}
+                    >
+                      {approving === activeApp.id ? "Approving..." : (
+                        <>
+                          <ThumbsUp className="h-4 w-4" />
+                          Guardian Approved ✓
+                        </>
+                      )}
+                    </Button>
+                  )}
+
+                  {/* Chat — available from trial onwards */}
+                  {chatAllowed(activeApp.status) && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full gap-2 border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10"
+                      onClick={() => {
+                        setChatApplicationId(activeApp.id);
+                        setChatRecipientName(activeApp.tutor.name ?? activeApp.tutor.email);
+                        setChatOpen(true);
+                      }}
+                    >
+                      <MessageSquare className="h-4 w-4" />
+                      Message Tutor
+                    </Button>
+                  )}
+
+                  {/* Book session — only when fully connected */}
+                  {(activeApp.status === "BOTH_PAID" || activeApp.status === "CONNECTED") && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full gap-2 border-white/20"
+                      onClick={() => {
+                        setBookSessionApplicationId(activeApp.id);
+                        setBookSessionOpen(true);
+                      }}
+                    >
+                      <CalendarPlus className="h-4 w-4" />
+                      Book a Session
+                    </Button>
+                  )}
+                </div>
               </CardContent>
             </Card>
           )}
+
+          {/* How it works — shown when no active application */}
+          {!activeApp && (
+            <div className="rounded-xl bg-white/[0.02] border border-white/[0.06] p-4 space-y-3">
+              <p className="text-xs font-semibold text-cyan-400 uppercase tracking-wide">How It Works</p>
+              {[
+                { step: "1", text: "Accept a tutor → Trial starts for free" },
+                { step: "2", text: "Try a few classes, gauge fit" },
+                { step: "3", text: "Click \"Guardian Approved\" when satisfied" },
+                { step: "4", text: "Tutor pays finder's fee → Contact unlocked" },
+              ].map((item) => (
+                <div key={item.step} className="flex items-start gap-2.5 text-xs text-muted-foreground">
+                  <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-cyan-500/20 text-[10px] font-bold text-cyan-400">{item.step}</span>
+                  {item.text}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* RIGHT COLUMN — Applicant list + detail */}
+        {/* RIGHT COLUMN — Applicant list */}
         <div className="lg:col-span-3 space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">
-              {isOpen ? "Pending Applications" : "Applications"}
-              <span className="ml-2 text-sm font-normal text-muted-foreground">({pendingApps.length})</span>
-            </h2>
-          </div>
+          {!activeApp && (
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold">
+                Pending Applications
+                <span className="ml-2 text-sm font-normal text-muted-foreground">({pendingApps.length})</span>
+              </h2>
+            </div>
+          )}
 
           {pendingApps.length === 0 && !activeApp && (
             <Card className="glass-card p-10 text-center">
@@ -423,68 +481,88 @@ export default function RequestDetailPage() {
             </Card>
           )}
 
-          {pendingApps.map((app) => {
-            const isSelected = selectedApp?.id === app.id;
-            return (
-              <motion.div
-                key={app.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                whileHover={{ scale: 1.005 }}
-              >
-                <Card
-                  onClick={() => setSelected(app.id)}
-                  className={`glass-card cursor-pointer transition-all ${isSelected ? "border-cyan-500/50 bg-cyan-500/5" : "hover:border-white/20"}`}
+          <AnimatePresence>
+            {pendingApps.map((app) => {
+              const isSelected = selectedApp?.id === app.id;
+              return (
+                <motion.div
+                  key={app.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  whileHover={{ scale: 1.005 }}
                 >
-                  <CardContent className="pt-4 pb-4">
-                    <div className="flex items-start gap-3">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500/20 to-violet-500/20 text-sm font-bold text-cyan-400">
-                        <TutorInitials name={app.tutor.name} email={app.tutor.email} />
+                  <Card
+                    onClick={() => setSelected(app.id)}
+                    className={`glass-card cursor-pointer transition-all ${isSelected ? "border-cyan-500/50 bg-cyan-500/5" : "hover:border-white/20"}`}
+                  >
+                    <CardContent className="pt-4 pb-4">
+                      <div className="flex items-start gap-3">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500/20 to-violet-500/20 text-sm font-bold text-cyan-400">
+                          <TutorInitials name={app.tutor.name} email={app.tutor.email} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm">{app.tutor.name ?? app.tutor.email}</p>
+                          {app.tutor.name && <p className="text-xs text-muted-foreground">{app.tutor.email}</p>}
+                          {app.proposed_rate && (
+                            <p className="text-xs text-emerald-400 mt-0.5">৳{Number(app.proposed_rate).toLocaleString()}/month proposed</p>
+                          )}
+                          <p className="text-sm text-muted-foreground leading-relaxed mt-2 line-clamp-3">
+                            {app.coverLetter}
+                          </p>
+                        </div>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm">{app.tutor.name ?? app.tutor.email}</p>
-                        {app.tutor.name && <p className="text-xs text-muted-foreground">{app.tutor.email}</p>}
-                        <p className="text-sm text-muted-foreground leading-relaxed mt-2 line-clamp-3">
-                          {app.coverLetter}
-                        </p>
-                      </div>
-                    </div>
 
-                    {isSelected && isOpen && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -5 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="mt-4 flex gap-2 justify-end"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => rejectApp(app.id)}
-                          disabled={!!accepting || !!rejecting}
-                          className="border-red-500/20 text-red-400 hover:bg-red-500/10"
-                        >
-                          {rejecting === app.id ? "Rejecting..." : (
-                            <span className="flex items-center gap-1"><XCircle className="h-3.5 w-3.5" />Reject</span>
-                          )}
-                        </Button>
-                        <Button
-                          variant="gradient"
-                          size="sm"
-                          onClick={() => initiateAccept(app.id)}
-                          disabled={!!accepting || !!rejecting}
-                        >
-                          {accepting === app.id ? "Processing..." : (
-                            <span className="flex items-center gap-1"><CreditCard className="h-3.5 w-3.5" />Accept (৳500)</span>
-                          )}
-                        </Button>
-                      </motion.div>
-                    )}
-                  </CardContent>
-                </Card>
-              </motion.div>
-            );
-          })}
+                      <AnimatePresence>
+                        {isSelected && (
+                          <motion.div
+                            initial={{ opacity: 0, y: -5 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -5 }}
+                            className="mt-4 space-y-3"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {/* Finder fee preview */}
+                            {app.proposed_rate && (
+                              <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 px-3 py-2 text-xs">
+                                <p className="text-emerald-400 font-medium">Free to accept — no upfront cost</p>
+                                <p className="text-emerald-300/70 mt-0.5">
+                                  If you approve after trial, tutor pays ৳{Math.max(Math.round(Number(app.proposed_rate) * 0.5), 300).toLocaleString()} finder&apos;s fee.
+                                </p>
+                              </div>
+                            )}
+                            <div className="flex gap-2 justify-end">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => rejectApp(app.id)}
+                                disabled={!!accepting || !!rejecting}
+                                className="border-red-500/20 text-red-400 hover:bg-red-500/10"
+                              >
+                                {rejecting === app.id ? "Rejecting..." : (
+                                  <span className="flex items-center gap-1"><XCircle className="h-3.5 w-3.5" />Reject</span>
+                                )}
+                              </Button>
+                              <Button
+                                variant="gradient"
+                                size="sm"
+                                onClick={() => acceptApp(app.id)}
+                                disabled={!!accepting || !!rejecting}
+                              >
+                                {accepting === app.id ? "Starting trial..." : (
+                                  <span className="flex items-center gap-1"><CheckCircle2 className="h-3.5 w-3.5" />Accept (Free Trial)</span>
+                                )}
+                              </Button>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
         </div>
       </div>
     </motion.div>

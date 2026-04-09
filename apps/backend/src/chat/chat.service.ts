@@ -10,7 +10,7 @@ export class ChatService {
   constructor(private readonly prisma: PrismaService) {}
 
   private isChatEnabled(status: string): boolean {
-    return status === "BOTH_PAID" || status === "CONNECTED";
+    return ["ACCEPTED", "TRIAL_APPROVED", "BOTH_PAID", "CONNECTED"].includes(status);
   }
 
   async canAccessChat(applicationId: string, userId: string): Promise<boolean> {

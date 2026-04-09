@@ -76,21 +76,24 @@ model TuitionRequest {
 }
 
 model Application {
-  id            String            @id @default(cuid())
-  requestId     String            @map("request_id")
-  tutorId       String            @map("tutor_id")
-  message       String?
-  proposed_rate Decimal?          @db.Decimal(10, 2)
-  status        ApplicationStatus @default(PENDING)
-  createdAt     DateTime          @default(now()) @map("created_at")
-  updatedAt     DateTime          @updatedAt @map("updated_at")
-  responded_at  DateTime?
-  coverLetter   String?           @map("cover_letter")
-  request       TuitionRequest    @relation(fields: [requestId], references: [id], onDelete: Cascade)
-  tutor         User              @relation(fields: [tutorId], references: [id], onDelete: Cascade)
-  payments      Payment[]
-  messages      Message[]
-  sessions      Session[]
+  id              String            @id @default(cuid())
+  requestId       String            @map("request_id")
+  tutorId         String            @map("tutor_id")
+  message         String?
+  proposed_rate   Decimal?          @db.Decimal(10, 2)
+  status          ApplicationStatus @default(PENDING)
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+  responded_at    DateTime?
+  trial_started_at DateTime?        @map("trial_started_at")
+  trial_approved_at DateTime?       @map("trial_approved_at")
+  finder_fee      Decimal?          @map("finder_fee") @db.Decimal(10, 2)
+  coverLetter     String?           @map("cover_letter")
+  request         TuitionRequest    @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  tutor           User              @relation(fields: [tutorId], references: [id], onDelete: Cascade)
+  payments        Payment[]
+  messages        Message[]
+  sessions        Session[]
 
   @@unique([requestId, tutorId])
   @@index([status])
@@ -383,12 +386,15 @@ enum UserRole {
 
 enum ApplicationStatus {
   PENDING
-  STUDENT_PAID
+  ACCEPTED
+  TRIAL
+  TRIAL_APPROVED
   BOTH_PAID
   CONNECTED
-  ACCEPTED
+  STUDENT_PAID
   REJECTED
   WITHDRAWN
+  CANCELLED
 }
 
 enum BookingStatus {
@@ -408,6 +414,8 @@ enum NotificationType {
   NEW_APPLICATION
   APPLICATION_ACCEPTED
   APPLICATION_REJECTED
+  TRIAL_STARTED
+  TRIAL_APPROVED
   NEW_MESSAGE
   SESSION_BOOKED
   SESSION_CONFIRMED

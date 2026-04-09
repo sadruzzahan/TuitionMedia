@@ -15,7 +15,7 @@ import { toast } from "@/hooks/use-toast";
 const TRUST_POINTS = [
   { icon: Shield, text: "Verified tutors across Bangladesh" },
   { icon: Zap, text: "Connect in minutes, not days" },
-  { icon: Star, text: "৳500 flat fee — no surprises" },
+  { icon: Star, text: "Free trial first — pay only on approval" },
 ];
 
 export default function LoginPage() {
@@ -121,7 +121,7 @@ export default function LoginPage() {
           {[
             { value: "10k+", label: "Students" },
             { value: "5k+", label: "Tutors" },
-            { value: "৳500", label: "Flat fee" },
+            { value: "Free", label: "Trial first" },
           ].map((s) => (
             <div key={s.label} className="glass rounded-xl p-3 text-center">
               <div className="text-lg font-bold text-white">{s.value}</div>

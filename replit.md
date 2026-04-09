@@ -1,7 +1,7 @@
 # TuitionMedia — Bangladesh Tutoring Marketplace
 
 ## Project Overview
-A full-stack tutoring marketplace built for Bangladesh. Students post tuition requests, tutors apply, and both parties connect via a ৳500 flat connection fee.
+A full-stack tutoring marketplace built for Bangladesh. Students post tuition requests, tutors apply, and connect via a trial-first model. Students pay ৳0 — tutors pay a finder's fee (50% of proposed monthly rate, min ৳300) AFTER the student/guardian approves the trial.
 
 ## Architecture
 - **Monorepo**: pnpm + Turborepo
@@ -57,20 +57,25 @@ bash start.sh
 | `/dashboard/tutor/schedule` | TUTOR | Availability picker + session history |
 | `/dashboard/profile` | All | Edit profile |
 
-## Business Model
-- ৳500 connection fee from **student** when accepting a tutor
-- ৳500 connection fee from **tutor** to unlock student contact info
-- Payment via bKash / Nagad (OTP demo mode implemented)
-- Contact info revealed only after both parties have paid
+## Business Model — Trial-First Commission System
+- **Students pay ৳0** — everything is free for students
+- **Tutors pay finder's fee** = 50% of proposed monthly rate (minimum ৳300)
+- The finder's fee is triggered ONLY after:
+  1. Student accepts the tutor (trial starts free, chat unlocked)
+  2. Student/guardian marks "Guardian Approved" after trial classes
+  3. Tutor pays the fee via bKash/Nagad → contact info unlocked for both
+- Payment via bKash / Nagad (OTP demo simulation)
+- Helper: `calcFinderFee(proposedRate)` = `Math.max(Math.round(rate * 0.5), 300)` — used in both `application.service.ts` and `payment.service.ts`
 
-## Application Status Flow & Chat Access
-- `PENDING` — tutor applied, awaiting student action
-- `ACCEPTED` — student accepted, student has paid ৳500
-- `BOTH_PAID` — both student and tutor have paid (this is the practical "connected" state; chat is enabled)
-- `CONNECTED` — alternative connected state (also enables chat)
-- `REJECTED` / `CANCELLED` — application terminated
-- Chat authorization uses **application-scoped** status only: `BOTH_PAID` or `CONNECTED`
-  - Request-level `contact_unlocked` is intentionally excluded from chat auth to prevent rejected tutors from accessing chat on the same request
+## Application Status Flow
+- `PENDING` → tutor applied, awaiting student review
+- `ACCEPTED` → student accepted for **free trial**; `trial_started_at` set; chat unlocked
+- `TRIAL_APPROVED` → student/guardian approved; `trial_approved_at` set; tutor must pay finder's fee
+- `BOTH_PAID` → tutor paid finder's fee; `contact_unlocked = true`; full contact info visible
+- `CONNECTED` → alias for BOTH_PAID (legacy)
+- `REJECTED` / `WITHDRAWN` / `CANCELLED` → application terminated
+- **Chat access**: allowed from `ACCEPTED` onwards (trial, approved, paid, connected)
+- **Contact info**: only unlocked after tutor pays (`BOTH_PAID`/`CONNECTED`)
 
 ## Bangladesh Localisation
 - Currency: BDT (৳)
