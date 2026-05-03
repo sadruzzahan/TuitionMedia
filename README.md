@@ -2,6 +2,22 @@
 
 A modern, animated full-stack platform connecting **Students** (tuition requesters) with **Tutors** (applicants), overseen by **Admins**.
 
+## 💼 Real-World Use Case
+Tutoring coordinators, agencies, and independent educators use a structured marketplace to publish learning needs, compare tutor applications, run trial windows, and move from a match to paid sessions—with admin visibility into fees, sessions, and reviews instead of scattered chats and spreadsheets.
+
+## 💰 Potential Value
+- Capture platform or subscription revenue on successful bookings, tutor verification tiers, or white-label deployments for a city or subject niche.
+- Cuts manual matching time by modeling requests, applications, trials, booking fees, and payouts in one Prisma-backed system.
+
+## 🚀 Demo / Access
+Self-hosted / local only today. Provision PostgreSQL, copy `apps/backend/.env.example` to `apps/backend/.env`, run Prisma migrations, then `pnpm dev` (backend `:3001`, frontend `:5000`). A public demo would need hosted DB, deployed API and web, secrets rotation, and hardened payment webhooks before taking real money.
+
+**Who is this for?** Tutoring business owners, marketplace operators, and product teams who need a serious multi-role stack (student / tutor / admin) with payments-adjacent models—not a static marketing site.
+
+**What problem does it solve?** It removes guesswork from intake and fulfillment: structured tuition requests, competing tutor applications, trial windows, sessions, fees, and reviews tied together instead of living in chats and ad hoc invoices.
+
+**Why should someone pay for this?** You are buying implementation depth—Next.js 15 App Router on one side, NestJS + Prisma on the other, plus shared Zod contracts—so customization Week One focuses on go-to-market and policy, not re-deriving marketplace schema.
+
 ## Recruiter snapshot
 
 - **Problem** — unstructured tutor/student discovery → modeled marketplace with postings, competing applications, paid sessions, and reviews (`apps/backend/prisma/schema.prisma`).
