@@ -1,130 +1,96 @@
 # TuitionMedia
 
-A modern, animated full-stack platform connecting **Students** (tuition requesters) with **Tutors** (applicants), overseen by **Admins**.
-
-## 💼 Real-World Use Case
-Tutoring coordinators, agencies, and independent educators use a structured marketplace to publish learning needs, compare tutor applications, run trial windows, and move from a match to paid sessions—with admin visibility into fees, sessions, and reviews instead of scattered chats and spreadsheets.
-
-## 💰 Potential Value
-- Capture platform or subscription revenue on successful bookings, tutor verification tiers, or white-label deployments for a city or subject niche.
-- Cuts manual matching time by modeling requests, applications, trials, booking fees, and payouts in one Prisma-backed system.
-
-## 🚀 Demo / Access
-Self-hosted / local only today. Provision PostgreSQL, copy `apps/backend/.env.example` to `apps/backend/.env`, run Prisma migrations, then `pnpm dev` (backend `:3001`, frontend `:5000`). A public demo would need hosted DB, deployed API and web, secrets rotation, and hardened payment webhooks before taking real money.
-
-**Who is this for?** Tutoring business owners, marketplace operators, and product teams who need a serious multi-role stack (student / tutor / admin) with payments-adjacent models—not a static marketing site.
-
-**What problem does it solve?** It removes guesswork from intake and fulfillment: structured tuition requests, competing tutor applications, trial windows, sessions, fees, and reviews tied together instead of living in chats and ad hoc invoices.
-
-**Why should someone pay for this?** You are buying implementation depth—Next.js 15 App Router on one side, NestJS + Prisma on the other, plus shared Zod contracts—so customization Week One focuses on go-to-market and policy, not re-deriving marketplace schema.
-
-## Recruiter snapshot
-
-- **Problem** — unstructured tutor/student discovery → modeled marketplace with postings, competing applications, paid sessions, and reviews (`apps/backend/prisma/schema.prisma`).
-- **Why it stands out here** — this repo is intentionally **different** from the Vite+Drizzle+Express template family elsewhere on the profile: **`Next.js 15` App Router frontend**, **`NestJS` modular backend**, **`Prisma`** migrations, and **`TurboRepo`** orchestration demonstrate breadth beyond a single scaffolding pattern.
-
-## Highlights
-
-- **Payments + fees** domain models (`BookingFee`, `Payment`, trial windows on applications) show real marketplace complexity.
-- **Shared contracts** via `packages/shared-schema` keeps API + UI drift-resistant (Zod + TS types surfaced to both sides).
-- **Realtime-ready UI stack** (`socket.io-client` on frontend) for messaging-centric flows.
+**Turborepo** monorepo: a **student ↔ tutor marketplace** with **admin** oversight—tuition requests, tutor applications, trials, sessions, booking fees, reviews, notifications, and Bangladesh-local payment UX (**bKash** / **Nagad** components in the frontend). **Next.js 15** (App Router) frontend and **NestJS** + **Prisma** backend share contracts from **`packages/shared-schema`** (Zod + TypeScript types). Realtime messaging uses **Socket.IO** on the server and **`socket.io-client`** in the app.
 
 ## Stack
 
-- **Monorepo**: Turborepo + pnpm workspaces
-- **Frontend**: Next.js 15 (App Router), Tailwind CSS, shadcn/ui, Zustand, Lucide React
-- **Backend**: NestJS, Prisma, Passport-JWT
-- **Shared**: `packages/shared-schema` — Zod schemas and TypeScript types for both apps
+| Layer | Choices |
+|--------|---------|
+| Monorepo | **Turborepo** + **pnpm** workspaces (`pnpm-workspace.yaml`) |
+| Frontend | `apps/frontend` — Next.js **15.1**, React 19, Tailwind 3, shadcn-style Radix UI, Zustand, Motion, Recharts |
+| Backend | `apps/backend` — NestJS 10, Prisma 6, Passport JWT, **@nestjs/platform-socket.io** |
+| Shared | `packages/shared-schema` — Zod schemas consumed by both apps |
+| Database | PostgreSQL (Prisma schema under `apps/backend/prisma`) |
+
+**Engines**: Node **≥ 20** (root `package.json`).
 
 ## Prerequisites
 
-- Node.js ≥ 20
-- pnpm (e.g. `corepack enable && corepack prepare pnpm@9.14.2 --activate` or `npm install -g pnpm`)
+- PostgreSQL
+- pnpm (root declares `pnpm` as devDependency; `corepack enable` recommended)
 
 ## Setup
 
-1. **Install dependencies**
+1. **Install**
+
    ```bash
    pnpm install
-   # or: npm install pnpm -D && npx pnpm install
    ```
 
-2. **Database** (PostgreSQL)
+2. **Database**
+
    ```bash
    cp apps/backend/.env.example apps/backend/.env
-   # Edit DATABASE_URL in apps/backend/.env
-   cd apps/backend && npx prisma migrate dev --name init
+   # Set DATABASE_URL and JWT secrets (see .env.example)
+   pnpm --filter backend exec prisma migrate dev
    ```
 
-3. **Build & run**
+   Root shortcuts: `pnpm run db:migrate`, `pnpm run db:generate`, `pnpm run db:studio`.
+
+3. **Run**
+
    ```bash
-   pnpm run build
-   pnpm --filter backend dev      # Backend on :3001
-   pnpm --filter frontend dev     # Frontend on :5000 (see apps/frontend/package.json)
+   pnpm dev                 # turbo: all dev tasks
    ```
 
-4. **Frontend env** (optional): `apps/frontend/.env.local` with `NEXT_PUBLIC_API_URL=http://localhost:3001`
+   Or individually:
 
-## Scripts
+   - **Backend**: `pnpm --filter backend dev` — Nest watch mode; listens on **`PORT`** or **3001** (`apps/backend/src/main.ts`).
+   - **Frontend**: `pnpm --filter frontend dev` — Next with **Turbopack** on **port 5000**, host `0.0.0.0`.
+
+4. **Frontend API URL**
+
+   Set `NEXT_PUBLIC_API_URL=http://localhost:3001` in `apps/frontend/.env.local` (or your deployed API origin).
+
+**CORS**: `main.ts` allows `FRONTEND_URL` (default `http://localhost:3000`), explicit `http://localhost:5000` and `3002`, plus `REPLIT_DOMAINS` split list when set.
+
+## Root scripts
 
 | Command | Description |
-|--------|-------------|
-| `pnpm dev` | Run all apps in dev mode (Turbo) |
-| `pnpm build` | Build all packages and apps |
-| `pnpm lint` | Lint all workspaces |
-| `pnpm --filter frontend dev` | Run only Next.js frontend |
-| `pnpm --filter backend dev` | Run only NestJS backend |
+|---------|-------------|
+| `pnpm dev` | `turbo run dev` |
+| `pnpm build` | `turbo run build` |
+| `pnpm lint` | `turbo run lint` |
+| `pnpm clean` | Clean turbo outputs + root `node_modules` |
+| `pnpm format` | Prettier over common file types |
 
 ## Project layout
 
 ```
-tuition-media/
+TuitionMedia/
 ├── apps/
-│   ├── frontend/     # Next.js 15
-│   └── backend/      # NestJS + Prisma
+│   ├── frontend/          # Next.js App Router: public marketing, tutor discovery, dashboards
+│   └── backend/           # NestJS modules, Prisma, WebSockets, JWT auth
 ├── packages/
-│   └── shared-schema # Zod + shared types
-├── package.json
-├── pnpm-workspace.yaml
+│   └── shared-schema/     # Shared Zod + types
+├── plans/                 # Internal planning markdowns
 ├── turbo.json
-└── tsconfig.base.json
+├── pyproject.toml / main.py   # ancillary Python at repo root (if used in your workflow)
+└── package.json
 ```
 
-## Screenshots | Demo links
+## Domain features (implemented)
 
-_Add public demo URL + GIFs showing student request intake + tutor applicant flow._
+- **Roles**: student, tutor, admin — signup/login and JWT-protected dashboards.
+- **Students**: post requests, browse tutors, book sessions, reviews, chat drawer, session history/upcoming widgets.
+- **Tutors**: profile, schedule/availability, applications to requests, session management.
+- **Payments UI**: bKash/Nagad flows and payment method selector (integrate webhooks before production money movement).
+- **Admin**: dashboard plans and routes as present under `(dashboard)` and prisma models for fees/reviews/sessions.
 
-## Features
+## Seeds (backend)
 
-- **Auth**: Signup, Login, JWT, role-based access
-- **Students**: Post tuition requests, view & accept tutor applications
-- **Tutors**: Browse job board, apply with cover letter, track applications
-- **Matching**: Accept application → request IN_PROGRESS, tutor notified
-- **UI**: Dark theme, glassmorphism, Motion animations, responsive
-
----
-
-## Architecture notes
-
-```text
-apps/
-├── frontend/   # Next.js 15 (Turbopack dev server on :5000 per package.json)
-├── backend/    # NestJS bootstrap with CORS for local + Replit domains
-packages/
-└── shared-schema/
-```
-
-Nest entrypoint configures multi-origin access including `REPLIT_DOMAINS` parsing for preview URLs (`apps/backend/src/main.ts`).
-
----
-
-## Roadmap | Known limitations
-
-- Harden webhook/payment integrations before exposing production traffic.
-- Add CI (lint/test) badge once pipelines exist.
-
----
+`apps/backend/package.json` defines `seed:admin`, `seed:test`, `seed:featured` via `ts-node` scripts in `prisma/`. Default Prisma seed invokes `seed-admin`.
 
 ## License
 
-Inherited from repository root (MIT unless otherwise marked).
+Private package (`private: true` in root `package.json`); treat licensing as specified by the repository owner if a separate license file is added.
