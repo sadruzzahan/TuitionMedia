@@ -1,96 +1,146 @@
 # TuitionMedia
 
-**Turborepo** monorepo: a **student ↔ tutor marketplace** with **admin** oversight—tuition requests, tutor applications, trials, sessions, booking fees, reviews, notifications, and Bangladesh-local payment UX (**bKash** / **Nagad** components in the frontend). **Next.js 15** (App Router) frontend and **NestJS** + **Prisma** backend share contracts from **`packages/shared-schema`** (Zod + TypeScript types). Realtime messaging uses **Socket.IO** on the server and **`socket.io-client`** in the app.
+  [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+  [![Next.js](https://img.shields.io/badge/Next.js-15-000000?style=flat-square&logo=next.js&logoColor=white)](https://nextjs.org/)
+  [![NestJS](https://img.shields.io/badge/NestJS-10-E0234E?style=flat-square&logo=nestjs&logoColor=white)](https://nestjs.com/)
+  [![Prisma](https://img.shields.io/badge/Prisma-ORM-2D3748?style=flat-square&logo=prisma&logoColor=white)](https://www.prisma.io/)
+  [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?style=flat-square&logo=postgresql&logoColor=white)](https://postgresql.org/)
+  [![Turborepo](https://img.shields.io/badge/Turborepo-monorepo-EF4444?style=flat-square&logo=turborepo&logoColor=white)](https://turbo.build/)
 
-## Stack
+  > A production-grade **student ↔ tutor marketplace** covering the full engagement lifecycle — from tuition requests through applications, trials, sessions, payments, reviews, and messaging — with local Bangladesh payment support (bKash / Nagad) and real-time Socket.IO notifications.
 
-| Layer | Choices |
-|--------|---------|
-| Monorepo | **Turborepo** + **pnpm** workspaces (`pnpm-workspace.yaml`) |
-| Frontend | `apps/frontend` — Next.js **15.1**, React 19, Tailwind 3, shadcn-style Radix UI, Zustand, Motion, Recharts |
-| Backend | `apps/backend` — NestJS 10, Prisma 6, Passport JWT, **@nestjs/platform-socket.io** |
-| Shared | `packages/shared-schema` — Zod schemas consumed by both apps |
-| Database | PostgreSQL (Prisma schema under `apps/backend/prisma`) |
+  ---
 
-**Engines**: Node **≥ 20** (root `package.json`).
+  ## Overview
 
-## Prerequisites
+  TuitionMedia solves a real coordination problem: students post detailed subject/location/budget requirements; tutors apply, go through a structured trial, and get booked for recurring sessions. Admins monitor quality, resolve disputes, and surface analytics. Every role gets a tailored UI backed by shared, type-safe contracts.
 
-- PostgreSQL
-- pnpm (root declares `pnpm` as devDependency; `corepack enable` recommended)
+  ---
 
-## Setup
+  ## Tech Stack
 
-1. **Install**
+  | Layer | Technology |
+  |-------|-----------|
+  | Monorepo | **Turborepo** + pnpm workspaces |
+  | Frontend | **Next.js 15** (App Router), React 19, Tailwind CSS 3, shadcn/Radix UI, Zustand, Framer Motion, Recharts |
+  | Backend | **NestJS 10**, Prisma ORM, PostgreSQL, Socket.IO |
+  | Shared Contracts | `packages/shared-schema` — Zod schemas + TypeScript types used by both apps |
+  | Realtime | Socket.IO server + `socket.io-client` in Next.js app |
+  | Payments | bKash / Nagad component flows (Bangladesh-local) |
+  | Auth | JWT-based sessions with role guards (student / tutor / admin) |
+  | Testing | Jest (unit + integration) |
 
-   ```bash
-   pnpm install
-   ```
+  ---
 
-2. **Database**
+  ## Features
 
-   ```bash
-   cp apps/backend/.env.example apps/backend/.env
-   # Set DATABASE_URL and JWT secrets (see .env.example)
-   pnpm --filter backend exec prisma migrate dev
-   ```
+  ### For Students
+  - Post detailed tuition requests (subject, grade level, location, budget, schedule)
+  - Browse and shortlist tutor applications
+  - Book trials with fee escrow
+  - Confirm sessions, leave reviews, and message tutors in real-time
 
-   Root shortcuts: `pnpm run db:migrate`, `pnpm run db:generate`, `pnpm run db:studio`.
+  ### For Tutors
+  - Profile with qualifications, subjects, and availability
+  - Apply to open requests; track application status
+  - Manage session calendars and earnings
+  - Receive instant notifications via Socket.IO
 
-3. **Run**
+  ### For Admins
+  - Full dashboard with user management, request oversight, and dispute resolution
+  - Analytics (Recharts) for platform health — active requests, conversion rates, revenue
+  - Tutor verification workflow
 
-   ```bash
-   pnpm dev                 # turbo: all dev tasks
-   ```
+  ### Platform
+  - Real-time messaging with Socket.IO (instant delivery, read receipts)
+  - Bangladesh-local payment UX (bKash / Nagad)
+  - Shared Zod validation layer eliminates client/server contract drift
+  - Turborepo task graph for parallel builds and caching
 
-   Or individually:
+  ---
 
-   - **Backend**: `pnpm --filter backend dev` — Nest watch mode; listens on **`PORT`** or **3001** (`apps/backend/src/main.ts`).
-   - **Frontend**: `pnpm --filter frontend dev` — Next with **Turbopack** on **port 5000**, host `0.0.0.0`.
+  ## Repository Structure
 
-4. **Frontend API URL**
+  ```
+  TuitionMedia/
+  ├── apps/
+  │   ├── frontend/          # Next.js 15 App Router
+  │   └── backend/           # NestJS API + Socket.IO server
+  ├── packages/
+  │   └── shared-schema/     # Zod schemas + TS types (shared contracts)
+  ├── turbo.json             # Turborepo pipeline config
+  └── pnpm-workspace.yaml
+  ```
 
-   Set `NEXT_PUBLIC_API_URL=http://localhost:3001` in `apps/frontend/.env.local` (or your deployed API origin).
+  ---
 
-**CORS**: `main.ts` allows `FRONTEND_URL` (default `http://localhost:3000`), explicit `http://localhost:5000` and `3002`, plus `REPLIT_DOMAINS` split list when set.
+  ## Getting Started
 
-## Root scripts
+  ### Prerequisites
 
-| Command | Description |
-|---------|-------------|
-| `pnpm dev` | `turbo run dev` |
-| `pnpm build` | `turbo run build` |
-| `pnpm lint` | `turbo run lint` |
-| `pnpm clean` | Clean turbo outputs + root `node_modules` |
-| `pnpm format` | Prettier over common file types |
+  - Node.js 20+
+  - pnpm 9+
+  - PostgreSQL 14+
 
-## Project layout
+  ### Setup
 
-```
-TuitionMedia/
-├── apps/
-│   ├── frontend/          # Next.js App Router: public marketing, tutor discovery, dashboards
-│   └── backend/           # NestJS modules, Prisma, WebSockets, JWT auth
-├── packages/
-│   └── shared-schema/     # Shared Zod + types
-├── plans/                 # Internal planning markdowns
-├── turbo.json
-├── pyproject.toml / main.py   # ancillary Python at repo root (if used in your workflow)
-└── package.json
-```
+  ```bash
+  # Clone the repository
+  git clone https://github.com/sadruzzahan/TuitionMedia.git
+  cd TuitionMedia
 
-## Domain features (implemented)
+  # Install dependencies
+  pnpm install
 
-- **Roles**: student, tutor, admin — signup/login and JWT-protected dashboards.
-- **Students**: post requests, browse tutors, book sessions, reviews, chat drawer, session history/upcoming widgets.
-- **Tutors**: profile, schedule/availability, applications to requests, session management.
-- **Payments UI**: bKash/Nagad flows and payment method selector (integrate webhooks before production money movement).
-- **Admin**: dashboard plans and routes as present under `(dashboard)` and prisma models for fees/reviews/sessions.
+  # Configure environment variables
+  cp apps/backend/.env.example apps/backend/.env
+  cp apps/frontend/.env.example apps/frontend/.env.local
+  # → Set DATABASE_URL, JWT_SECRET, SOCKET_PORT, and payment keys
 
-## Seeds (backend)
+  # Run database migrations
+  pnpm --filter backend prisma migrate dev
 
-`apps/backend/package.json` defines `seed:admin`, `seed:test`, `seed:featured` via `ts-node` scripts in `prisma/`. Default Prisma seed invokes `seed-admin`.
+  # Start all services in parallel
+  pnpm dev
+  ```
 
-## License
+  The frontend runs on [http://localhost:3000](http://localhost:3000) and the backend on [http://localhost:4000](http://localhost:4000).
 
-Private package (`private: true` in root `package.json`); treat licensing as specified by the repository owner if a separate license file is added.
+  ---
+
+  ## Demo
+
+  > **Status:** Local development — staging environment in progress.
+  > Clone and run locally to explore all features (see setup above).
+
+  ### Screenshots
+
+  | Student Dashboard | Tutor Applications | Admin Panel |
+  |:-:|:-:|:-:|
+  | *(screenshot placeholder)* | *(screenshot placeholder)* | *(screenshot placeholder)* |
+
+  ---
+
+  ## Roadmap
+
+  - [ ] Stripe / international payment gateway
+  - [ ] Video session integration (Daily.co or Livekit)
+  - [ ] Mobile app (React Native / Expo)
+  - [ ] AI-powered tutor matching based on student history
+
+  ---
+
+  ## Contributing
+
+  Pull requests are welcome. Please open an issue first to discuss what you'd like to change.
+
+  ---
+
+  ## License
+
+  MIT — see [LICENSE](LICENSE) for details.
+
+  ---
+
+  > Built by [@sadruzzahan](https://github.com/sadruzzahan) — open to remote product engineering roles and serious freelance engagements.
+  
